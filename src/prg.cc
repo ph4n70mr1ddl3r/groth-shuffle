@@ -1,7 +1,21 @@
 #include "prg.h"
 
+#include <wmmintrin.h>
+
 #include <cstring>
 #include <random>
+
+#if defined(__linux__) || defined(__unix__)
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+#include <sys/random.h>
+#include <cstdio>
+#elif defined(_WIN32)
+#include <windows.h>
+#include <bcrypt.h>
+#pragma comment(lib, "bcrypt.lib")
+#endif
 
 /* https://github.com/sebastien-riou/aes-brute-force */
 
@@ -52,10 +66,35 @@ inline static void aes128_enc(__m128i* key_schedule, uint8_t* pt, uint8_t* ct) {
 }
 
 shf::Prg::Prg() {
+#if defined(__linux__) || defined(__unix__)
+  // Use getrandom syscall for cryptographic randomness
+  if (getrandom(m_seed, SeedSize(), 0) != static_cast<ssize_t>(SeedSize())) {
+    // Fallback to /dev/urandom
+    FILE* f = fopen("/dev/urandom", "rb");
+    if (f) {
+      if (fread(m_seed, 1, SeedSize(), f) != SeedSize()) {
+        // Last resort: std::random_device (may be insecure)
+        std::random_device rd;
+        for (std::size_t i = 0; i < SeedSize(); ++i) {
+          m_seed[i] = static_cast<uint8_t>(rd());
+        }
+      }
+      fclose(f);
+    } else {
+      std::random_device rd;
+      for (std::size_t i = 0; i < SeedSize(); ++i) {
+        m_seed[i] = static_cast<uint8_t>(rd());
+      }
+    }
+  }
+#else
+  // Platform without getrandom; use /dev/urandom or CryptoAPI etc.
+  // For simplicity, fallback to std::random_device (may be insecure on some platforms)
   std::random_device rd;
   for (std::size_t i = 0; i < SeedSize(); ++i) {
     m_seed[i] = static_cast<uint8_t>(rd());
   }
+#endif
   Init();
 }
 
@@ -73,10 +112,11 @@ void shf::Prg::Fill(uint8_t* dest, std::size_t n) {
 
   std::size_t remaining = n;
   uint8_t* out = dest;
+  __m128i* state = reinterpret_cast<__m128i*>(m_state);
 
   while (remaining >= BlockSize()) {
     __m128i mask = CreateMask(m_counter);
-    aes128_enc(m_state, reinterpret_cast<uint8_t*>(&mask), out);
+    aes128_enc(state, reinterpret_cast<uint8_t*>(&mask), out);
     Update();
     out += BlockSize();
     remaining -= BlockSize();
@@ -85,7 +125,7 @@ void shf::Prg::Fill(uint8_t* dest, std::size_t n) {
   if (remaining) {
     alignas(16) uint8_t block[BlockSize()];
     __m128i mask = CreateMask(m_counter);
-    aes128_enc(m_state, reinterpret_cast<uint8_t*>(&mask), block);
+    aes128_enc(state, reinterpret_cast<uint8_t*>(&mask), block);
     Update();
     std::memcpy(out, block, remaining);
   }
@@ -93,4 +133,4 @@ void shf::Prg::Fill(uint8_t* dest, std::size_t n) {
 
 void shf::Prg::Update() { m_counter++; }
 
-void shf::Prg::Init() { aes128_load_key(m_seed, m_state); }
+void shf::Prg::Init() { aes128_load_key(m_seed, reinterpret_cast<__m128i*>(m_state)); }

@@ -14,10 +14,10 @@ void shf::CurveInit() {
       throw std::runtime_error("relic core_init() failed");
     }
 
-    TRY { ec_param_set_any(); }
+    TRY { ep_param_set(NIST_P256); }
     CATCH_ANY {
       core_clean();
-      throw std::runtime_error("relic ec_param_set_any() failed");
+      throw std::runtime_error("relic ep_param_set(NIST_P256) failed");
     }
 
     bn_new(k_curve_order);
@@ -235,7 +235,7 @@ shf::Scalar shf::Scalar::CreateRandom() {
   return s;
 }
 
-shf::Scalar shf::Scalar::CreateFromInt(unsigned int v) {
+shf::Scalar shf::Scalar::CreateFromInt(unsigned long long v) {
   CurveInit();
   Scalar s;
   bn_set_dig(s.m_internal, (dig_t)v);

@@ -49,12 +49,17 @@ endif()
 
 add_executable( ${TEST_EXEC} ${SOURCE_FILES} ${TEST_SOURCE_FILES} )
 add_executable( ${DEMO_EXEC} ${SOURCE_FILES} demo/holdem_demo.cc )
+add_executable( server_demo.x ${SOURCE_FILES} demo/server_demo.cc )
 target_link_libraries( ${TEST_EXEC}
   ${CATCH2_TARGET}
   ${RELIC_LIB}
   gmp
   pthread )
 target_link_libraries( ${DEMO_EXEC}
+  ${RELIC_LIB}
+  gmp
+  pthread )
+target_link_libraries( server_demo.x
   ${RELIC_LIB}
   gmp
   pthread )

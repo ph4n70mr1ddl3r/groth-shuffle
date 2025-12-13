@@ -24,7 +24,7 @@ class Scalar {
   friend class Point;
 
   static Scalar CreateRandom();
-  static Scalar CreateFromInt(unsigned int v);
+  static Scalar CreateFromInt(unsigned long long v);
   static Scalar Read(const uint8_t* bytes);
 
   static constexpr std::size_t ByteSize() { return 32; };

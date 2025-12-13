@@ -1,8 +1,7 @@
 #ifndef SHF_PRG_H
 #define SHF_PRG_H
 
-#include <wmmintrin.h>
-
+#include <cstddef>
 #include <cstdint>
 #include <type_traits>
 #include <vector>
@@ -11,7 +10,7 @@ namespace shf {
 
 class Prg {
  public:
-  static constexpr std::size_t BlockSize() { return sizeof(__m128i); };
+  static constexpr std::size_t BlockSize() { return 16; };
 
   static constexpr std::size_t SeedSize() { return BlockSize(); };
 
@@ -33,9 +32,9 @@ class Prg {
   void Update();
   void Init();
 
-  uint8_t m_seed[sizeof(__m128i)] = {0};
+  uint8_t m_seed[16] = {0};
   long m_counter = 0;
-  __m128i m_state[11];
+  alignas(16) uint8_t m_state[11 * 16];
 };
 
 }  // namespace shf
