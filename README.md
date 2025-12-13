@@ -44,6 +44,14 @@ cmake --build build -j
 ctest --test-dir build --output-on-failure
 ```
 
+## Platform Compatibility
+
+The pre‑built Relic libraries in `thirdparty/lib/` are compiled for **x86‑64 Linux**.
+If you are on a different architecture (e.g., ARM, macOS) or encounter linking errors,
+you will need to rebuild Relic from source.  To do so, remove the existing libraries
+and run the build script—it will attempt to download and compile Relic automatically
+(requires Internet connection and development tools).
+
 ## Security Considerations
 
 ### Curve Selection
