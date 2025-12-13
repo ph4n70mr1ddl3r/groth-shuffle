@@ -22,7 +22,7 @@ struct CommitmentAndRandomness {
 };
 
 CommitmentAndRandomness Commit(const CommitKey& ck,
-                               const std::vector<Scalar>& m);
+                               const std::vector<Scalar>& m, Prg& prg);
 
 Point Commit(const CommitKey& ck, const Scalar& r,
              const std::vector<Scalar>& m);

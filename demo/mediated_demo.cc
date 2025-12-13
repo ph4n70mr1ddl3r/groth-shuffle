@@ -132,11 +132,22 @@ public:
 
   ShuffleMessage Shuffle(const shf::PublicKey& joint_pk, 
                          const shf::CommitKey& ck, 
-                         const Deck& input_deck) {
+                         const Deck& input_deck,
+                         const std::string& hand_id) {
     std::cout << "[Player " << id_ << "] Shuffling deck..." << std::endl;
-    shf::Prg prg;
+    
+    // Derive deterministic seed for shuffling: Hash(IdentityKey || HandID || "SHUFFLE")
+    shf::Hash h;
+    h.Update(identity_sk_);
+    h.Update(reinterpret_cast<const uint8_t*>(hand_id.data()), hand_id.size());
+    h.Update(reinterpret_cast<const uint8_t*>("SHUFFLE"), 7);
+    
+    // Use the first 16 bytes (128 bits) of the hash as the PRG seed
+    shf::Digest digest = h.Finalize();
+    shf::Prg prg(digest.data()); // Seeded PRG
+    
     shf::Shuffler shuffler(joint_pk, ck, prg);
-    shf::Hash hash;
+    shf::Hash hash; // The ZKP transcript hash (public) works as usual
     
     shf::ShuffleP proof = shuffler.Shuffle(input_deck.cards, hash);
     
@@ -206,13 +217,16 @@ public:
     std::cout << "\n--- Shuffle Phase ---\n";
     Deck prev_deck = current_deck_;
 
+    // P1 Shuffle
     std::cout << "[Server] Sending deck to Player 1.\n";
-    ShuffleMessage msg1 = players_[0]->Shuffle(joint_pk_, ck_, prev_deck);
+    ShuffleMessage msg1 = players_[0]->Shuffle(joint_pk_, ck_, prev_deck, hand_id_);
 
+    // Server Verify P1
     if (!VerifyProof(prev_deck, msg1)) {
         std::cerr << "CHEATING DETECTED by P1\n"; exit(1);
     }
     
+    // P2 Verify P1
     if (!players_[1]->Verify(joint_pk_, ck_, prev_deck, msg1)) {
         std::cerr << "P2 rejected P1 proof\n"; exit(1);
     }
@@ -220,8 +234,9 @@ public:
     current_deck_ = msg1.shuffled_deck;
     prev_deck = current_deck_;
 
+    // P2 Shuffle
     std::cout << "[Server] Sending deck to Player 2.\n";
-    ShuffleMessage msg2 = players_[1]->Shuffle(joint_pk_, ck_, prev_deck);
+    ShuffleMessage msg2 = players_[1]->Shuffle(joint_pk_, ck_, prev_deck, hand_id_);
 
     if (!VerifyProof(prev_deck, msg2)) {
          std::cerr << "CHEATING DETECTED by P2\n"; exit(1);

@@ -5,6 +5,8 @@
 
 #include <cstdint>
 
+#include "prg.h"
+
 extern "C" {
 #include "include/relic/relic.h"
 }
@@ -24,6 +26,7 @@ class Scalar {
   friend class Point;
 
   static Scalar CreateRandom();
+  static Scalar CreateRandom(Prg& prg);
   static Scalar CreateFromInt(unsigned long long v);
   static Scalar Read(const uint8_t* bytes);
 

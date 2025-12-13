@@ -20,6 +20,10 @@ set(SOURCE_FILES
     src/shuffler.cc
     src/zkp.cc)
 
+set(TEST_SOURCE_FILES
+    test/test_main.cc
+    test/test_security.cc)
+
 include_directories(src)
 include_directories(thirdparty)
 
@@ -28,6 +32,12 @@ set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g" )
 # Mediated Demo Executable
 add_executable( mediated_demo.x ${SOURCE_FILES} demo/mediated_demo.cc )
 target_link_libraries( mediated_demo.x
+  ${RELIC_LIB}
+  gmp
+  pthread )
+
+add_executable( tests.x ${SOURCE_FILES} ${TEST_SOURCE_FILES} )
+target_link_libraries( tests.x
   ${RELIC_LIB}
   gmp
   pthread )

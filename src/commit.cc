@@ -25,8 +25,8 @@ shf::Point shf::Commit(const shf::CommitKey& ck, const shf::Scalar& r,
 }
 
 shf::CommitmentAndRandomness shf::Commit(const shf::CommitKey& ck,
-                                       const std::vector<shf::Scalar>& m) {
-  const auto r = Scalar::CreateRandom();
+                                       const std::vector<shf::Scalar>& m, shf::Prg& prg) {
+  const auto r = Scalar::CreateRandom(prg);
   const auto C = Commit(ck, r, m);
   return {C, r};
 }

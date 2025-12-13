@@ -95,11 +95,11 @@ static inline shf::Scalar ShuffleChallenge1(shf::Hash& hash,
   return shf::ScalarFromHash(hash);
 }
 
-#define RANDOM_SCALAR_VECTOR(_name, _size)            \
-  do {                                                \
-    _name.reserve(_size);                             \
-    for (std::size_t __i = 0; __i < _size; ++__i)     \
-      _name.emplace_back(shf::Scalar::CreateRandom()); \
+#define RANDOM_SCALAR_VECTOR(_name, _size, _prg)     \
+  do {                                               \
+    _name.reserve(_size);                            \
+    for (std::size_t __i = 0; __i < _size; ++__i)    \
+      _name.emplace_back(shf::Scalar::CreateRandom(_prg)); \
   } while (0)
 
 static inline shf::Scalar ShuffleChallenge2(shf::Hash& hash, const shf::Scalar& c,
@@ -129,19 +129,19 @@ shf::ShuffleP shf::Shuffler::Shuffle(const std::vector<shf::Ctxt>& Es,
   // permute and randomize ciphertexts
   const Permutation p = CreatePermutation(n, m_prg);
   std::vector<Scalar> rho;
-  RANDOM_SCALAR_VECTOR(rho, n);
+  RANDOM_SCALAR_VECTOR(rho, n, m_prg);
   const std::vector<Ctxt> pEs = Randomize(m_pk, Permute(Es, p), rho);
 
   // Ca = commit(ck ; pi(1) ... pi(n) ; r)
   const std::vector<Scalar> a = PermutationAsScalars(p);
-  const CommitmentAndRandomness Ca = Commit(m_ck, a);
+  const CommitmentAndRandomness Ca = Commit(m_ck, a, m_prg);
 
   const Scalar x = ShuffleChallenge1(hash, Es, pEs, Ca.C);
 
   // Cb = commit(ck ; pi(1)*c0 ... pi(n)*c0 ; s);
   const std::vector<Scalar> xexp = ExpSuccessive(x, n);
   const std::vector<Scalar> b = Permute(xexp, p);
-  const CommitmentAndRandomness Cb = Commit(m_ck, b);
+  const CommitmentAndRandomness Cb = Commit(m_ck, b, m_prg);
 
   const Scalar y = ShuffleChallenge2(hash, x, Cb.C);
   const Scalar z = ShuffleChallenge3(hash, y);
@@ -156,12 +156,12 @@ shf::ShuffleP shf::Shuffler::Shuffle(const std::vector<shf::Ctxt>& Es,
   const Scalar t = y * Ca.r + Cb.r;
   const Point CdCz = Commit(m_ck, t, dz);
   // product proof that commit(ck ; d - z ; t) is a commitment of dz.
-  const ProductP proof0 = CreateProof(m_ck, hash, {CdCz, prod}, dz, t);
+  const ProductP proof0 = CreateProof(m_ck, hash, {CdCz, prod}, dz, t, m_prg);
 
   const Scalar rr = NegateInnerProd(rho, b);
   const Ctxt Ex = Add(Encrypt(m_pk, Point(), rr), Dot(b, pEs));
   const MultiExpP proof1 =
-      CreateProof(m_ck, m_pk, hash, {pEs, Ex, Cb.C}, b, Cb.r, rr);
+      CreateProof(m_ck, m_pk, hash, {Cb.C, Ex, pEs}, b, Cb.r, rr, m_prg);
 
   return {pEs, Ca.C, Cb.C, proof0, proof1};
 }
@@ -202,7 +202,7 @@ bool shf::Shuffler::VerifyShuffle(const std::vector<shf::Ctxt>& ctxts,
   const Ctxt Ex = Dot(xexp, ctxts);
   const MultiExpP proof1 = proof.multiexp_proof;
   const bool check1 =
-      VerifyProof(m_ck, m_pk, hash, {pEs, Ex, proof.Cb}, proof1);
+      VerifyProof(m_ck, m_pk, hash, {proof.Cb, Ex, pEs}, proof1);
 
   return check0 && check1;
 }

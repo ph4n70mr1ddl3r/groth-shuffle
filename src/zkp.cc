@@ -12,10 +12,10 @@ static inline shf::Scalar DLogChallenge(shf::Hash& hash, const shf::Point& p0,
 }
 
 shf::DLogP shf::CreateProof(const shf::DLogS& statement, shf::Hash& hash,
-                          const shf::Scalar& w) {
+                          const shf::Scalar& w, shf::Prg& prg) {
   const Point B = statement.B;
   const Point P = statement.P;
-  const Scalar v = Scalar::CreateRandom();
+  const Scalar v = Scalar::CreateRandom(prg);
   const Point T = v * B;
   const Scalar c = DLogChallenge(hash, B, P, T);
   const Scalar r = v - c * w;
@@ -46,12 +46,12 @@ static inline shf::Scalar DLogEqChallenge(shf::Hash& hash, const shf::Point& p0,
 }
 
 shf::DLogEqP shf::CreateProof(const shf::DLogEqS& statement, shf::Hash& hash,
-                            const shf::Scalar& w) {
+                            const shf::Scalar& w, shf::Prg& prg) {
   const Point G = statement.G;
   const Point A = statement.A;
   const Point H = statement.H;
   const Point B = statement.B;
-  const Scalar v = Scalar::CreateRandom();
+  const Scalar v = Scalar::CreateRandom(prg);
   const Point T = v * G;
   const Point K = v * H;
   const Scalar c = DLogEqChallenge(hash, G, A, H, B, T, K);
@@ -92,7 +92,7 @@ static inline shf::Scalar ProductChallenge(shf::Hash& hash, const shf::Point& C0
 shf::ProductP shf::CreateProof(const shf::CommitKey& ck, shf::Hash& hash,
                              const shf::ProductS& statement,
                              const std::vector<shf::Scalar>& w0,
-                             const shf::Scalar& w1) {
+                             const shf::Scalar& w1, shf::Prg& prg) {
   const auto n = w0.size();
   if (n == 0) {
     throw std::invalid_argument("product proof requires at least 1 element");
@@ -109,8 +109,8 @@ shf::ProductP shf::CreateProof(const shf::CommitKey& ck, shf::Hash& hash,
 
   bs.emplace_back(w0[0]);
   for (std::size_t i = 0; i < n; ++i) {
-    ds.emplace_back(Scalar::CreateRandom());
-    es.emplace_back(Scalar::CreateRandom());
+    ds.emplace_back(Scalar::CreateRandom(prg));
+    es.emplace_back(Scalar::CreateRandom(prg));
     if (i == 0) continue;
     bs.emplace_back(w0[i] * bs[i - 1]);
   }
@@ -125,9 +125,9 @@ shf::ProductP shf::CreateProof(const shf::CommitKey& ck, shf::Hash& hash,
     bd.emplace_back(es[i + 1] - w0[i + 1] * es[i] - bs[i] * ds[i + 1]);
   }
 
-  const auto Cr0 = Commit(ck, ds);
-  const auto Cr1 = Commit(ck, sd);
-  const auto Cr2 = Commit(ck, bd);
+  const auto Cr0 = Commit(ck, ds, prg);
+  const auto Cr1 = Commit(ck, sd, prg);
+  const auto Cr2 = Commit(ck, bd, prg);
 
   const auto c = ProductChallenge(hash, Cr0.C, Cr1.C, Cr2.C);
 
@@ -182,8 +182,8 @@ bool shf::VerifyProof(const shf::CommitKey& ck, shf::Hash& hash,
 }
 
 static inline shf::CommitmentAndRandomness CommitOne(const shf::CommitKey& ck,
-                                                    const shf::Scalar& m) {
-  const auto r = shf::Scalar::CreateRandom();
+                                                    const shf::Scalar& m, shf::Prg& prg) {
+  const auto r = shf::Scalar::CreateRandom(prg);
   return {m * ck.G[0] + r * ck.H, r};
 }
 
@@ -220,7 +220,7 @@ static inline std::vector<shf::Scalar> MulAndSum(
 shf::MultiExpP shf::CreateProof(const shf::CommitKey& ck, const shf::PublicKey& pk,
                               shf::Hash& hash, const shf::MultiExpS& statement,
                               const std::vector<shf::Scalar>& w0,
-                              const shf::Scalar& w1, const shf::Scalar& w2) {
+                              const shf::Scalar& w1, const shf::Scalar& w2, shf::Prg& prg) {
   const std::size_t n = w0.size();
   const auto& Es = statement.Es;
   if (n == 0 || Es.size() != n || ck.Size() != n) {
@@ -228,14 +228,14 @@ shf::MultiExpP shf::CreateProof(const shf::CommitKey& ck, const shf::PublicKey& 
   }
 
   SCALAR_VECTOR(a0, n);
-  for (std::size_t i = 0; i < n; ++i) a0.emplace_back(Scalar::CreateRandom());
+  for (std::size_t i = 0; i < n; ++i) a0.emplace_back(Scalar::CreateRandom(prg));
 
-  const CommitmentAndRandomness Cr0 = Commit(ck, a0);
+  const CommitmentAndRandomness Cr0 = Commit(ck, a0, prg);
 
-  const Scalar b = Scalar::CreateRandom();
-  const CommitmentAndRandomness Crb = CommitOne(ck, b);
+  const Scalar b = Scalar::CreateRandom(prg);
+  const CommitmentAndRandomness Crb = CommitOne(ck, b, prg);
 
-  const Scalar t = Scalar::CreateRandom();
+  const Scalar t = Scalar::CreateRandom(prg);
   const Point bG = b * Point::Generator();
   const Ctxt E0 = shf::Add(shf::Encrypt(pk, bG, t), shf::Dot(a0, Es));
 

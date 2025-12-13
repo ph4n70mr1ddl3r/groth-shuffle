@@ -235,6 +235,21 @@ shf::Scalar shf::Scalar::CreateRandom() {
   return s;
 }
 
+shf::Scalar shf::Scalar::CreateRandom(shf::Prg& prg) {
+  CurveInit();
+  Scalar s;
+  std::vector<uint8_t> buffer(ByteSize());
+  prg.Fill(buffer);
+  
+  // Create a scalar from bytes
+  bn_read_bin(s.m_internal, buffer.data(), buffer.size());
+  
+  // Ensure strict modulo reduction (Relic's bn_read_bin doesn't reduce)
+  bn_mod(s.m_internal, s.m_internal, k_curve_order);
+  
+  return s;
+}
+
 shf::Scalar shf::Scalar::CreateFromInt(unsigned long long v) {
   CurveInit();
   Scalar s;

@@ -8,6 +8,8 @@
 
 namespace shf {
 
+class Scalar;
+
 class Prg {
  public:
   static constexpr std::size_t BlockSize() { return 16; };
