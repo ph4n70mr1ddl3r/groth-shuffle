@@ -10,6 +10,24 @@
 #include "prg.h"
 #include "zkp.h"
 
+/**
+ * Implementation of the Bayer–Groth shuffle with zero‑knowledge proof.
+ *
+ * The protocol allows a prover to convince a verifier that a list of ciphertexts
+ * (encryptions under an additive homomorphic scheme) has been permuted and
+ * re‑randomized, without revealing the permutation or the randomization factors.
+ *
+ * The proof consists of two sub‑proofs:
+ *   1. A product proof showing that a committed permutation satisfies certain
+ *      algebraic relations.
+ *   2. A multi‑exponentiation proof linking the permuted ciphertexts to the
+ *      original ones via the committed permutation.
+ *
+ * Reference:
+ *   Stephanie Bayer and Jens Groth, "Efficient Zero‑Knowledge Argument for
+ *   Correctness of a Shuffle", EUROCRYPT 2012.
+ */
+
 namespace shf {
 
 /**
@@ -38,7 +56,10 @@ std::vector<T> Permute(const std::vector<T>& things, const Permutation& perm) {
 
   std::vector<T> permuted;
   permuted.reserve(n);
-  for (const auto& idx : perm) permuted.emplace_back(things[idx]);
+  for (const auto& idx : perm) {
+    if (idx >= n) throw std::invalid_argument("invalid permutation index");
+    permuted.emplace_back(things[idx]);
+  }
   return permuted;
 }
 
@@ -76,9 +97,9 @@ class Shuffler {
  private:
   PublicKey m_pk;
   CommitKey m_ck;
-  Prg m_prg;
+  Prg& m_prg;
 };
 
-}  // namespace mh
+}  // namespace shf
 
 #endif  // SHF_SHUFFLER_H

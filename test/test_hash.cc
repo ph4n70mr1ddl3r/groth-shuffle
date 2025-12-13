@@ -44,6 +44,21 @@ TEST_CASE("hash") {
     REQUIRE(shf::DigestEquals(hash.Finalize(), SHA3_256_0xa3_200_times));
   }
 
+  SECTION("non-uniform >8 bytes") {
+    // bytes 0..63
+    unsigned char data[64];
+    for (std::size_t i = 0; i < 64; ++i) data[i] = static_cast<unsigned char>(i);
+
+    static const shf::Digest SHA3_256_0_to_63 = {
+        0xc8, 0xad, 0x47, 0x8f, 0x4e, 0x1d, 0xd9, 0xd4, 0x7d, 0xfc, 0x3b,
+        0x98, 0x57, 0x08, 0xd9, 0x2d, 0xb1, 0xf8, 0xdb, 0x48, 0xfe, 0x9c,
+        0xdd, 0xd4, 0x59, 0xe6, 0x3c, 0x32, 0x1f, 0x49, 0x04, 0x02};
+
+    shf::Hash hash;
+    auto digest = hash.Update(data, sizeof(data)).Finalize();
+    REQUIRE(shf::DigestEquals(digest, SHA3_256_0_to_63));
+  }
+
   SECTION("can copy state") {
     shf::Hash hash;
     hash.Update((const unsigned char *)"abc", 3);

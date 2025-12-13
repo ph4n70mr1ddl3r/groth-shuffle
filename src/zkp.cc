@@ -1,10 +1,12 @@
 #include "zkp.h"
 
 #include <iostream>
+#include <stdexcept>
 
 static inline shf::Scalar DLogChallenge(shf::Hash& hash, const shf::Point& p0,
                                        const shf::Point& p1,
                                        const shf::Point& p2) {
+  hash.Update(reinterpret_cast<const uint8_t*>("DLOG"), 4);
   hash.Update(p0).Update(p1).Update(p2);
   return ScalarFromHash(hash);
 }
@@ -38,6 +40,7 @@ static inline shf::Scalar DLogEqChallenge(shf::Hash& hash, const shf::Point& p0,
                                          const shf::Point& p3,
                                          const shf::Point& p4,
                                          const shf::Point& p5) {
+  hash.Update(reinterpret_cast<const uint8_t*>("DLOGEQ"), 5);
   hash.Update(p0).Update(p1).Update(p2).Update(p3).Update(p4).Update(p5);
   return ScalarFromHash(hash);
 }
@@ -81,6 +84,7 @@ bool shf::VerifyProof(const shf::DLogEqS& statement, shf::Hash& hash,
 static inline shf::Scalar ProductChallenge(shf::Hash& hash, const shf::Point& C0,
                                           const shf::Point& C1,
                                           const shf::Point& C2) {
+  hash.Update(reinterpret_cast<const uint8_t*>("PRODUCT"), 7);
   hash.Update(C0).Update(C1).Update(C2);
   return shf::ScalarFromHash(hash);
 }
@@ -90,6 +94,12 @@ shf::ProductP shf::CreateProof(const shf::CommitKey& ck, shf::Hash& hash,
                              const std::vector<shf::Scalar>& w0,
                              const shf::Scalar& w1) {
   const auto n = w0.size();
+  if (n == 0) {
+    throw std::invalid_argument("product proof requires at least 1 element");
+  }
+  if (ck.Size() != n) {
+    throw std::invalid_argument("commitment key size mismatch");
+  }
   const auto C = statement.C;
   const auto b = statement.b;
 
@@ -149,8 +159,11 @@ bool shf::VerifyProof(const shf::CommitKey& ck, shf::Hash& hash,
 
   Point rhs0, rhs1;
   std::size_t i = 0;
-  const auto as = proof.as;
-  const auto bs = proof.bs;
+  const auto& as = proof.as;
+  const auto& bs = proof.bs;
+  if (as.size() != bs.size() || as.size() != ck.G.size() || as.size() < 2) {
+    return false;
+  }
   const auto b = statement.b;
   for (; i < as.size() - 2; ++i) {
     const auto Gi = ck.G[i];
@@ -176,9 +189,10 @@ static inline shf::CommitmentAndRandomness CommitOne(const shf::CommitKey& ck,
 
 static inline void HashStatement(shf::Hash& hash,
                                  const shf::MultiExpS& statement) {
-  const auto Es = statement.Es;
-  const auto E = statement.E;
-  const auto C = statement.C;
+  hash.Update(reinterpret_cast<const uint8_t*>("MULTIEXP_STMT"), 13);
+  const auto& Es = statement.Es;
+  const auto& E = statement.E;
+  const auto& C = statement.C;
   hash.Update(E.U).Update(E.V).Update(C);
   for (const auto& ctxt : Es) hash.Update(ctxt.U).Update(ctxt.V);
 }
@@ -188,6 +202,7 @@ static inline shf::Scalar MultiExpChallenge(shf::Hash& hash,
                                            const shf::Point& C0,
                                            const shf::Point& C1,
                                            const shf::Ctxt& E) {
+  hash.Update(reinterpret_cast<const uint8_t*>("MULTIEXP_CHAL"), 13);
   HashStatement(hash, statement);
   hash.Update(C0).Update(C1).Update(E.U).Update(E.V);
   return shf::ScalarFromHash(hash);
@@ -207,9 +222,10 @@ shf::MultiExpP shf::CreateProof(const shf::CommitKey& ck, const shf::PublicKey& 
                               const std::vector<shf::Scalar>& w0,
                               const shf::Scalar& w1, const shf::Scalar& w2) {
   const std::size_t n = w0.size();
-  const std::vector<Ctxt> Es = statement.Es;
-  const Ctxt E = statement.E;
-  const Point C = statement.C;
+  const auto& Es = statement.Es;
+  if (n == 0 || Es.size() != n || ck.Size() != n) {
+    throw std::invalid_argument("multiexp proof size mismatch");
+  }
 
   SCALAR_VECTOR(a0, n);
   for (std::size_t i = 0; i < n; ++i) a0.emplace_back(Scalar::CreateRandom());
@@ -239,6 +255,10 @@ static inline bool CtxtEqual(const shf::Ctxt& E0, const shf::Ctxt& E1) {
 bool shf::VerifyProof(const shf::CommitKey& ck, const shf::PublicKey& pk,
                      shf::Hash& hash, const shf::MultiExpS& statement,
                      const shf::MultiExpP& proof) {
+  const auto n = statement.Es.size();
+  if (n == 0 || ck.Size() != n || proof.a.size() != n) {
+    return false;
+  }
   const auto c =
       MultiExpChallenge(hash, statement, proof.C0, proof.C1, proof.E);
 

@@ -1,5 +1,6 @@
 #include "hash.h"
 
+#include <array>
 #include <cstring>
 #include <vector>
 
@@ -84,11 +85,13 @@ shf::Hash& shf::Hash::Update(const uint8_t* bytes, std::size_t nbytes) {
   unsigned int tail = nbytes - words * sizeof(uint64_t);
 
   for (std::size_t i = 0; i < words; ++i) {
-    const uint64_t t =
-        (uint64_t)(p[0]) | ((uint64_t)(p[1]) << 8 * 1) |
-        ((uint64_t)(p[1]) << 8 * 2) | ((uint64_t)(p[1]) << 8 * 3) |
-        ((uint64_t)(p[1]) << 8 * 4) | ((uint64_t)(p[1]) << 8 * 5) |
-        ((uint64_t)(p[1]) << 8 * 6) | ((uint64_t)(p[1]) << 8 * 7);
+    const uint64_t t = (uint64_t)(p[0]) | ((uint64_t)(p[1]) << 8 * 1) |
+                       ((uint64_t)(p[2]) << 8 * 2) |
+                       ((uint64_t)(p[3]) << 8 * 3) |
+                       ((uint64_t)(p[4]) << 8 * 4) |
+                       ((uint64_t)(p[5]) << 8 * 5) |
+                       ((uint64_t)(p[6]) << 8 * 6) |
+                       ((uint64_t)(p[7]) << 8 * 7);
 
     mState[mWordIndex] ^= t;
 
@@ -105,19 +108,16 @@ shf::Hash& shf::Hash::Update(const uint8_t* bytes, std::size_t nbytes) {
 }
 
 shf::Hash& shf::Hash::Update(const shf::Point& point) {
-  // TODO: figure out if this data can be allocated automatically.
-  uint8_t* data = new uint8_t[Point::ByteSize()];
-  point.Write(data);
-  Update(data, Point::ByteSize());
-  delete[] data;
+  std::vector<uint8_t> data(Point::ByteSize());
+  point.Write(data.data());
+  Update(data.data(), data.size());
   return *this;
 }
 
 shf::Hash& shf::Hash::Update(const shf::Scalar& scalar) {
-  const auto n = Scalar::ByteSize();
-  uint8_t data[n];
-  scalar.Write(data);
-  Update(data, n);
+  std::array<uint8_t, Scalar::ByteSize()> data{};
+  scalar.Write(data.data());
+  Update(data.data(), data.size());
   return *this;
 }
 

@@ -1,6 +1,7 @@
 #include "prg.h"
 
 #include <cstring>
+#include <random>
 
 /* https://github.com/sebastien-riou/aes-brute-force */
 
@@ -50,7 +51,13 @@ inline static void aes128_enc(__m128i* key_schedule, uint8_t* pt, uint8_t* ct) {
   _mm_storeu_si128((__m128i*)ct, m);
 }
 
-shf::Prg::Prg() { Init(); }
+shf::Prg::Prg() {
+  std::random_device rd;
+  for (std::size_t i = 0; i < SeedSize(); ++i) {
+    m_seed[i] = static_cast<uint8_t>(rd());
+  }
+  Init();
+}
 
 shf::Prg::Prg(const uint8_t* seed) {
   std::memcpy(m_seed, seed, SeedSize());
@@ -64,23 +71,24 @@ static inline __m128i CreateMask(const long counter) {
 void shf::Prg::Fill(uint8_t* dest, std::size_t n) {
   if (!n) return;
 
-  std::size_t nblocks = n / BlockSize();
+  std::size_t remaining = n;
+  uint8_t* out = dest;
 
-  if (nblocks % BlockSize()) nblocks++;
-
-  __m128i mask = CreateMask(m_counter);
-  uint8_t* out = new uint8_t[nblocks * BlockSize()];
-  uint8_t* p = out;
-
-  for (std::size_t i = 0; i < nblocks; ++i) {
-    aes128_enc(m_state, (uint8_t*)(&mask), p);
+  while (remaining >= BlockSize()) {
+    __m128i mask = CreateMask(m_counter);
+    aes128_enc(m_state, reinterpret_cast<uint8_t*>(&mask), out);
     Update();
-    mask = CreateMask(m_counter);
-    p += BlockSize();
+    out += BlockSize();
+    remaining -= BlockSize();
   }
 
-  std::memcpy(dest, out, n);
-  delete[] out;
+  if (remaining) {
+    alignas(16) uint8_t block[BlockSize()];
+    __m128i mask = CreateMask(m_counter);
+    aes128_enc(m_state, reinterpret_cast<uint8_t*>(&mask), block);
+    Update();
+    std::memcpy(out, block, remaining);
+  }
 }
 
 void shf::Prg::Update() { m_counter++; }

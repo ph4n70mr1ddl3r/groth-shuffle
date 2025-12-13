@@ -2,19 +2,33 @@
 
 #include <iostream>
 #include <numeric>
+#include <limits>
+
+static inline uint64_t RandomU64(shf::Prg& prg) {
+  uint64_t x = 0;
+  prg.Fill(reinterpret_cast<uint8_t*>(&x), sizeof(x));
+  return x;
+}
+
+static inline std::size_t UniformIndex(shf::Prg& prg, std::size_t bound_inclusive) {
+  const uint64_t range = static_cast<uint64_t>(bound_inclusive) + 1;
+  const uint64_t limit =
+      std::numeric_limits<uint64_t>::max() -
+      (std::numeric_limits<uint64_t>::max() % range);
+  uint64_t x = RandomU64(prg);
+  while (x >= limit) x = RandomU64(prg);
+  return static_cast<std::size_t>(x % range);
+}
 
 shf::Permutation shf::CreatePermutation(std::size_t size, shf::Prg& prg) {
   if (!size) return Permutation();
 
   Permutation p(size);
   std::iota(p.begin(), p.end(), 0);
-  std::vector<std::size_t> r(size);
-  prg.Fill(r);
 
   // Fisher-Yates
-  std::size_t c = 0;
-  for (int i = size - 1; i >= 0; i--) {
-    std::size_t j = r[c++] % (i + 1);
+  for (std::size_t i = size - 1; i > 0; --i) {
+    const std::size_t j = UniformIndex(prg, i);
     std::swap(p[i], p[j]);
   }
 
@@ -22,7 +36,7 @@ shf::Permutation shf::CreatePermutation(std::size_t size, shf::Prg& prg) {
 }
 
 static inline std::vector<shf::Scalar> PermutationAsScalars(
-    const shf::Permutation p) {
+    const shf::Permutation& p) {
   std::vector<shf::Scalar> s;
   const std::size_t n = p.size();
   s.reserve(n);
@@ -57,7 +71,6 @@ static inline std::vector<shf::Ctxt> Randomize(
     const std::vector<shf::Scalar>& rs) {
   const std::size_t n = Es.size();
   TYPED_VECTOR(shf::Ctxt, randomized, n);
-  const shf::Point one = shf::Point();
   for (std::size_t i = 0; i < n; ++i) {
     randomized.emplace_back(Randomize(pk, Es[i], rs[i]));
   }
@@ -75,6 +88,7 @@ static inline shf::Scalar ShuffleChallenge1(shf::Hash& hash,
                                            const std::vector<shf::Ctxt>& Es,
                                            const std::vector<shf::Ctxt>& pEs,
                                            const shf::Point& C) {
+  hash.Update(reinterpret_cast<const uint8_t*>("SHUFFLE_CHAL1"), 13);
   for (const shf::Ctxt& E : Es) hash.Update(E.U).Update(E.V);
   for (const shf::Ctxt& E : pEs) hash.Update(E.U).Update(E.V);
   hash.Update(C);
@@ -90,12 +104,14 @@ static inline shf::Scalar ShuffleChallenge1(shf::Hash& hash,
 
 static inline shf::Scalar ShuffleChallenge2(shf::Hash& hash, const shf::Scalar& c,
                                            const shf::Point& C) {
+  hash.Update(reinterpret_cast<const uint8_t*>("SHUFFLE_CHAL2"), 13);
   hash.Update(c).Update(C);
   return shf::ScalarFromHash(hash);
 }
 
 static inline shf::Scalar ShuffleChallenge3(shf::Hash& hash,
                                            const shf::Scalar& c) {
+  hash.Update(reinterpret_cast<const uint8_t*>("SHUFFLE_CHAL3"), 13);
   hash.Update(c);
   return shf::ScalarFromHash(hash);
 }
@@ -103,6 +119,12 @@ static inline shf::Scalar ShuffleChallenge3(shf::Hash& hash,
 shf::ShuffleP shf::Shuffler::Shuffle(const std::vector<shf::Ctxt>& Es,
                                    shf::Hash& hash) {
   const std::size_t n = Es.size();
+  if (n == 0) {
+    throw std::invalid_argument("cannot shuffle empty ciphertext vector");
+  }
+  if (m_ck.Size() != n) {
+    throw std::invalid_argument("commitment key size mismatch");
+  }
 
   // permute and randomize ciphertexts
   const Permutation p = CreatePermutation(n, m_prg);
@@ -153,6 +175,10 @@ static inline shf::Point CommitConstantNoRandomness(const shf::CommitKey& ck,
 
 bool shf::Shuffler::VerifyShuffle(const std::vector<shf::Ctxt>& ctxts,
                                  const shf::ShuffleP& proof, shf::Hash& hash) {
+  const std::size_t n = ctxts.size();
+  if (n == 0 || proof.permuted.size() != n || m_ck.Size() != n) {
+    return false;
+  }
   const Scalar x = ShuffleChallenge1(hash, ctxts, proof.permuted, proof.Ca);
   const Scalar y = ShuffleChallenge2(hash, x, proof.Cb);
   const Scalar z = ShuffleChallenge3(hash, y);
@@ -161,7 +187,6 @@ bool shf::Shuffler::VerifyShuffle(const std::vector<shf::Ctxt>& ctxts,
   const Point Cd = y * proof.Ca + proof.Cb;
   const Point CdCz = Cd + Cz;
 
-  const std::size_t n = ctxts.size();
   SCALAR_VECTOR(xexp, n);
   xexp.emplace_back(x);
   Scalar prod = x - z;

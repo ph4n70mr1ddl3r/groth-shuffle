@@ -102,5 +102,5 @@ class Point {
   ec_t m_internal;
 };
 
-}  // namespace mh
+}  // namespace shf
 #endif  // SHF_CURVE_H

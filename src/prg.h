@@ -4,6 +4,7 @@
 #include <wmmintrin.h>
 
 #include <cstdint>
+#include <type_traits>
 #include <vector>
 
 namespace shf {
@@ -22,13 +23,10 @@ class Prg {
 
   template <typename T>
   void Fill(std::vector<T>& to_fill) {
-    const auto n = to_fill.size();
-    const auto data_size = sizeof(T) * n;
-    uint8_t* data = new uint8_t[data_size];
-    Fill(data, data_size);
-    T* ptr = reinterpret_cast<T*>(data);
-    for (std::size_t i = 0; i < n; ++i) to_fill[i] = *ptr++;
-    delete[] data;
+    static_assert(std::is_trivially_copyable_v<T>,
+                  "Prg::Fill(std::vector<T>&) requires trivially copyable T");
+    const auto data_size = sizeof(T) * to_fill.size();
+    Fill(reinterpret_cast<uint8_t*>(to_fill.data()), data_size);
   }
 
  private:
@@ -40,6 +38,6 @@ class Prg {
   __m128i m_state[11];
 };
 
-}  // namespace mh
+}  // namespace shf
 
 #endif  // SHF_PRG_H

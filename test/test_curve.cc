@@ -1,4 +1,5 @@
 #include <catch2/catch.hpp>
+#include <vector>
 
 #include "curve.h"
 
@@ -35,6 +36,14 @@ TEST_CASE("point") {
     REQUIRE(p * x == x * p);
     REQUIRE((p * x) * y == (p * y) * x);
   }
+
+  SECTION("infinity serialization is deterministic") {
+    shf::Point inf;
+    std::vector<uint8_t> bytes(shf::Point::ByteSize(), 0xAA);
+    inf.Write(bytes.data());
+    REQUIRE(bytes[0] == 1);
+    for (std::size_t i = 1; i < bytes.size(); ++i) REQUIRE(bytes[i] == 0);
+  }
 }
 
 TEST_CASE("scalar") {
@@ -53,5 +62,10 @@ TEST_CASE("scalar") {
     shf::Scalar a = shf::Scalar::CreateRandom();
     shf::Scalar two = shf::Scalar::CreateFromInt(2);
     REQUIRE(a + a == two * a);
+  }
+
+  SECTION("negation of zero") {
+    shf::Scalar z;
+    REQUIRE((-z).IsZero());
   }
 }

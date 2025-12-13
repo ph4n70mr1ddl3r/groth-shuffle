@@ -30,16 +30,36 @@ include_directories(src)
 include_directories(thirdparty)
 
 set(TEST_EXEC tests.x)
+set(DEMO_EXEC holdem_demo.x)
 
 set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g" )
 add_compile_definitions( TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/test/data/" )
-find_package( Catch2 REQUIRED )
 include( CTest )
-include( Catch )
+
+find_package( Catch2 QUIET )
+if(Catch2_FOUND)
+  set(CATCH2_TARGET Catch2::Catch2)
+  include(Catch OPTIONAL)
+else()
+  add_library(catch2_header INTERFACE)
+  add_library(Catch2::Catch2 ALIAS catch2_header)
+  target_include_directories(catch2_header INTERFACE "${CMAKE_SOURCE_DIR}/thirdparty")
+  set(CATCH2_TARGET Catch2::Catch2)
+endif()
+
 add_executable( ${TEST_EXEC} ${SOURCE_FILES} ${TEST_SOURCE_FILES} )
+add_executable( ${DEMO_EXEC} ${SOURCE_FILES} demo/holdem_demo.cc )
 target_link_libraries( ${TEST_EXEC}
-  Catch2::Catch2
+  ${CATCH2_TARGET}
   ${RELIC_LIB}
   gmp
   pthread )
-catch_discover_tests( ${TEST_EXEC} )
+target_link_libraries( ${DEMO_EXEC}
+  ${RELIC_LIB}
+  gmp
+  pthread )
+if(COMMAND catch_discover_tests)
+  catch_discover_tests( ${TEST_EXEC} )
+else()
+  add_test(NAME shuffle_tests COMMAND ${TEST_EXEC})
+endif()

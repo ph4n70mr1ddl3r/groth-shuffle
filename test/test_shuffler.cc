@@ -62,3 +62,76 @@ TEST_CASE("shuffle") {
 #endif
   REQUIRE(correct);
 }
+
+TEST_CASE("shuffle edge cases") {
+  shf::CurveInit();
+
+  SECTION("empty ciphertext vector throws") {
+    const auto ck = shf::CreateCommitKey(1);
+    const auto sk = shf::CreateSecretKey();
+    const auto pk = shf::CreatePublicKey(sk);
+    shf::Prg prg;
+    shf::Shuffler shuffler(pk, ck, prg);
+    std::vector<shf::Ctxt> empty;
+    shf::Hash hash;
+    REQUIRE_THROWS_AS(shuffler.Shuffle(empty, hash), std::invalid_argument);
+  }
+
+  SECTION("size mismatch between commitment key and ciphertexts throws") {
+    const auto ck = shf::CreateCommitKey(5);
+    const auto sk = shf::CreateSecretKey();
+    const auto pk = shf::CreatePublicKey(sk);
+    shf::Prg prg;
+    shf::Shuffler shuffler(pk, ck, prg);
+    std::vector<shf::Ctxt> ctxts(10);
+    shf::Hash hash;
+    REQUIRE_THROWS_AS(shuffler.Shuffle(ctxts, hash), std::invalid_argument);
+  }
+
+  SECTION("verification fails with tampered proof") {
+    const std::size_t n = 50;
+    const auto ck = shf::CreateCommitKey(n);
+    const auto sk = shf::CreateSecretKey();
+    const auto pk = shf::CreatePublicKey(sk);
+    std::vector<shf::Ctxt> ctxts;
+    for (std::size_t i = 0; i < n; ++i) {
+      ctxts.emplace_back(shf::Encrypt(pk, shf::Point::CreateRandom()));
+    }
+    shf::Prg prg;
+    shf::Shuffler shuffler(pk, ck, prg);
+    shf::Hash hash;
+    auto proof = shuffler.Shuffle(ctxts, hash);
+    proof.permuted[0].U = shf::Point::CreateRandom();
+    shf::Hash hash2;
+    REQUIRE_FALSE(shuffler.VerifyShuffle(ctxts, proof, hash2));
+  }
+
+  SECTION("large shuffle (1000 ciphertexts)") {
+    const std::size_t n = 1000;
+    const auto ck = shf::CreateCommitKey(n);
+    const auto sk = shf::CreateSecretKey();
+    const auto pk = shf::CreatePublicKey(sk);
+    std::vector<shf::Ctxt> ctxts;
+    for (std::size_t i = 0; i < n; ++i) {
+      ctxts.emplace_back(shf::Encrypt(pk, shf::Point::CreateRandom()));
+    }
+    shf::Prg prg;
+    shf::Shuffler shuffler(pk, ck, prg);
+    shf::Hash hash;
+    auto proof = shuffler.Shuffle(ctxts, hash);
+    shf::Hash hash2;
+    REQUIRE(shuffler.VerifyShuffle(ctxts, proof, hash2));
+  }
+
+  SECTION("verification fails with empty ciphertext vector") {
+    const auto ck = shf::CreateCommitKey(1);
+    const auto sk = shf::CreateSecretKey();
+    const auto pk = shf::CreatePublicKey(sk);
+    shf::Prg prg;
+    shf::Shuffler shuffler(pk, ck, prg);
+    std::vector<shf::Ctxt> empty;
+    shf::ShuffleP proof;
+    shf::Hash hash;
+    REQUIRE_FALSE(shuffler.VerifyShuffle(empty, proof, hash));
+  }
+}
