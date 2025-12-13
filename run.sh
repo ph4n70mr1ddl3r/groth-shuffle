@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Build and test the Bayer-Groth shuffle implementation
+# Build the Mediated Mental Poker Demo
 
 # Default build directory
 BUILD_DIR="${BUILD_DIR:-build}"
@@ -46,15 +46,5 @@ cmake -S . -B "$BUILD_DIR" "$@"
 info "Building..."
 cmake --build "$BUILD_DIR" -j "$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)"
 
-# Run tests
-info "Running tests..."
-if ctest --test-dir "$BUILD_DIR" --output-on-failure; then
-    info "All tests passed!"
-else
-    error "Tests failed."
-    exit 1
-fi
-
 info "Build completed successfully."
-info "Test executable: $BUILD_DIR/tests.x"
-info "Demo executable: $BUILD_DIR/holdem_demo.x"
+info "Demo executable: $BUILD_DIR/mediated_demo.x"
