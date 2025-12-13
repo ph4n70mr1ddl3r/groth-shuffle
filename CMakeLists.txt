@@ -11,6 +11,7 @@ if(EMSCRIPTEN)
   set(MULTI "" CACHE STRING "Multi-threading support" FORCE)
   set(WSIZE 32 CACHE INTEGER "Word size" FORCE)
   set(OPSYS "NONE" CACHE STRING "Operating system" FORCE)
+  set(ARCH "NONE" CACHE STRING "Architecture" FORCE)
 else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -Wextra -pedantic -Werror")
 endif()
@@ -62,8 +63,6 @@ set(TEST_SOURCE_FILES
 include_directories(src)
 # include_directories(thirdparty) # No longer needed for pre-built libs
 
-set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -g" )
-
 # --- Targets ---
 
 # Mediated Demo
@@ -82,12 +81,7 @@ target_link_libraries( tests.x
 if(EMSCRIPTEN)
     add_executable( groth_shuffle_js src/js_bindings.cc ${SOURCE_FILES} )
     target_link_libraries( groth_shuffle_js relic_s )
-    target_link_options( groth_shuffle_js PRIVATE 
-        "--bind" 
-        "-sMODULARIZE=1" 
-        "-sEXPORT_NAME='GrothShuffle'"
-        "-sALLOW_MEMORY_GROWTH=1"
-        "-sWASM=1"
-        "-sDISABLE_EXCEPTION_CATCHING=0"
+    set_target_properties(groth_shuffle_js PROPERTIES LINK_FLAGS 
+        "--bind -sMODULARIZE=1 -sEXPORT_NAME='GrothShuffle' -sALLOW_MEMORY_GROWTH=1 -sWASM=1 -sDISABLE_EXCEPTION_CATCHING=0 -g0 -O3 -Wno-limited-postlink-optimizations"
     )
 endif()

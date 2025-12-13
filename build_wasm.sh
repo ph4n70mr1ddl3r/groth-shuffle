@@ -7,6 +7,7 @@ if ! command -v emcmake &> /dev/null; then
 fi
 
 BUILD_DIR="build_wasm"
+rm -rf "$BUILD_DIR"
 
 echo "Configuring WASM build..."
 emcmake cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release
