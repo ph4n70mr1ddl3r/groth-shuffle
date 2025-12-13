@@ -35,7 +35,7 @@ class Prg {
   void Init();
 
   uint8_t m_seed[16] = {0};
-  long m_counter = 0;
+  std::uint64_t m_counter = 0;
   alignas(16) uint8_t m_state[11 * 16];
 };
 

@@ -4,6 +4,7 @@
 #include <sstream>
 #include <iomanip>
 #include <chrono>
+#include <stdexcept>
 
 #include "curve.h"
 #include "cipher.h"
@@ -26,11 +27,19 @@ std::string ToHex(const uint8_t* data, size_t len) {
 }
 
 std::vector<uint8_t> FromHex(const std::string& hex) {
+    if ((hex.size() % 2) != 0) {
+        throw std::invalid_argument("hex string must have even length");
+    }
     std::vector<uint8_t> bytes;
-    for (unsigned int i = 0; i < hex.length(); i += 2) {
-        std::string byteString = hex.substr(i, 2);
-        uint8_t byte = (uint8_t)strtol(byteString.c_str(), NULL, 16);
-        bytes.push_back(byte);
+    bytes.reserve(hex.size() / 2);
+    for (std::size_t i = 0; i < hex.size(); i += 2) {
+        const std::string byteString = hex.substr(i, 2);
+        std::size_t parsed = 0;
+        const auto v = std::stoul(byteString, &parsed, 16);
+        if (parsed != 2 || v > 0xFFu) {
+            throw std::invalid_argument("invalid hex string");
+        }
+        bytes.push_back(static_cast<uint8_t>(v));
     }
     return bytes;
 }
@@ -46,7 +55,7 @@ std::string ScalarToHex(const Scalar& s) {
 Scalar ScalarFromHex(const std::string& hex) {
     std::vector<uint8_t> bytes = FromHex(hex);
     if (bytes.size() != Scalar::ByteSize()) {
-         // Handle error or padding? For now assume correct input.
+        throw std::invalid_argument("invalid scalar encoding length");
     }
     return Scalar::Read(bytes.data());
 }
@@ -59,6 +68,9 @@ std::string PointToHex(const Point& p) {
 
 Point PointFromHex(const std::string& hex) {
     std::vector<uint8_t> bytes = FromHex(hex);
+    if (bytes.size() != Point::ByteSize()) {
+        throw std::invalid_argument("invalid point encoding length");
+    }
     return Point::Read(bytes.data());
 }
 

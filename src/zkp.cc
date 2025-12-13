@@ -94,8 +94,8 @@ shf::ProductP shf::CreateProof(const shf::CommitKey& ck, shf::Hash& hash,
                              const std::vector<shf::Scalar>& w0,
                              const shf::Scalar& w1, shf::Prg& prg) {
   const auto n = w0.size();
-  if (n == 0) {
-    throw std::invalid_argument("product proof requires at least 1 element");
+  if (n < 2) {
+    throw std::invalid_argument("product proof requires at least 2 elements");
   }
   if (ck.Size() != n) {
     throw std::invalid_argument("commitment key size mismatch");
@@ -269,5 +269,8 @@ bool shf::VerifyProof(const shf::CommitKey& ck, const shf::PublicKey& pk,
   const Ctxt E1 = Add(Encrypt(pk, Point::Generator() * proof.b, proof.t),
                       Dot(proof.a, statement.Es));
 
-  return C == Commit(ck, proof.r, proof.a) && CtxtEqual(E0, E1);
+  const Point expected_C1 = proof.b * ck.G[0] + proof.s * ck.H;
+
+  return C == Commit(ck, proof.r, proof.a) && CtxtEqual(E0, E1) &&
+         proof.C1 == expected_C1;
 }

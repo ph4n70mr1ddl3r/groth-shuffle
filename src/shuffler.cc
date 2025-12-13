@@ -119,8 +119,8 @@ static inline shf::Scalar ShuffleChallenge3(shf::Hash& hash,
 shf::ShuffleP shf::Shuffler::Shuffle(const std::vector<shf::Ctxt>& Es,
                                    shf::Hash& hash) {
   const std::size_t n = Es.size();
-  if (n == 0) {
-    throw std::invalid_argument("cannot shuffle empty ciphertext vector");
+  if (n < 2) {
+    throw std::invalid_argument("shuffle requires at least 2 ciphertexts");
   }
   if (m_ck.Size() != n) {
     throw std::invalid_argument("commitment key size mismatch");
@@ -176,7 +176,7 @@ static inline shf::Point CommitConstantNoRandomness(const shf::CommitKey& ck,
 bool shf::Shuffler::VerifyShuffle(const std::vector<shf::Ctxt>& ctxts,
                                  const shf::ShuffleP& proof, shf::Hash& hash) {
   const std::size_t n = ctxts.size();
-  if (n == 0 || proof.permuted.size() != n || m_ck.Size() != n) {
+  if (n < 2 || proof.permuted.size() != n || m_ck.Size() != n) {
     return false;
   }
   const Scalar x = ShuffleChallenge1(hash, ctxts, proof.permuted, proof.Ca);
