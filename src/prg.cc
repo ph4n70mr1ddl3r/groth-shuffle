@@ -96,10 +96,6 @@ inline void ShiftRows(uint8_t* state) {
   state[9] = state[13];
   state[13] = temp;
   // Row 2
-  temp = state[2];
-  state[2] = state[10];
-  state[10] = state[2]; // Bug? No, wait. 2->10->2 is swap. 6->14->6 is swap.
-  // Proper swap
   std::swap(state[2], state[10]);
   std::swap(state[6], state[14]);
   // Row 3
