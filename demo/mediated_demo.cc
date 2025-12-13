@@ -1,11 +1,13 @@
 #include <chrono>
 #include <cstdint>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <string>
 #include <vector>
 #include <memory>
 #include <random>
+#include <sstream>
 
 #include "cipher.h"
 #include "curve.h"
@@ -14,23 +16,7 @@
 
 namespace {
 
-using Clock = std::chrono::high_resolution_clock;
-
-// --- Helper Utilities (copied from server_demo.cc) ---
-
-struct StepTimer {
-  explicit StepTimer(std::string label)
-      : label(std::move(label)), start(Clock::now()) {}
-
-  long long ElapsedMs() const {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() -
-                                                                start)
-        .count();
-  }
-
-  std::string label;
-  Clock::time_point start;
-};
+// --- Helper Utilities ---
 
 static inline std::string CardName(std::size_t card_index) {
   static const char* kRanks[] = {"2", "3", "4", "5", "6", "7", "8",
@@ -61,6 +47,58 @@ static inline int DecodeCard(const shf::Point& p,
   return -1;
 }
 
+// Convert byte vector to hex string
+std::string bytesToHex(const std::vector<uint8_t>& bytes) {
+    std::stringstream ss;
+    ss << std::hex << std::setfill('0');
+    for (uint8_t b : bytes) {
+        ss << std::setw(2) << static_cast<int>(b);
+    }
+    return ss.str();
+}
+
+// Convert hex string to byte vector
+std::vector<uint8_t> hexToBytes(const std::string& hex) {
+    std::vector<uint8_t> bytes;
+    for (std::size_t i = 0; i < hex.length(); i += 2) {
+        std::string byteString = hex.substr(i, 2);
+        uint8_t byte = static_cast<uint8_t>(std::stoul(byteString, nullptr, 16));
+        bytes.push_back(byte);
+    }
+    return bytes;
+}
+
+// --- Key Management Helpers ---
+
+// Save a scalar (Secret Key) to a file in hex format
+void SaveKeyToFile(const std::string& filename, const shf::Scalar& key) {
+  std::ofstream ofs(filename); // No binary mode for hex string
+  if (!ofs) throw std::runtime_error("Cannot write to file: " + filename);
+  std::vector<uint8_t> buffer(shf::Scalar::ByteSize());
+  key.Write(buffer.data());
+  ofs << bytesToHex(buffer);
+  std::cout << "   [System] Saved new identity key to " << filename << "\n";
+}
+
+// Load a scalar from file (hex format), or generate and save if missing
+shf::Scalar LoadOrGenerateKey(const std::string& filename) {
+  std::ifstream ifs(filename);
+  if (ifs) {
+    std::string hex_key_string;
+    ifs >> hex_key_string;
+    if (ifs && hex_key_string.length() == shf::Scalar::ByteSize() * 2) { // Each byte is 2 hex chars
+      std::cout << "   [System] Loaded existing identity key from " << filename << "\n";
+      std::vector<uint8_t> buffer = hexToBytes(hex_key_string);
+      return shf::Scalar::Read(buffer.data());
+    }
+  }
+  
+  // Generate new
+  shf::Scalar new_key = shf::Scalar::CreateRandom();
+  SaveKeyToFile(filename, new_key);
+  return new_key;
+}
+
 // --- Data Structures ---
 
 struct Deck {
@@ -68,20 +106,30 @@ struct Deck {
 };
 
 struct ShuffleMessage {
-  Deck shuffled_deck; // The resulting deck
-  shf::ShuffleP proof; // The proof of transition from input -> output
+  Deck shuffled_deck;
+  shf::ShuffleP proof;
 };
 
 // --- Actors ---
 
 class Player {
 public:
-  Player(int id) : id_(id), sk_(shf::CreateSecretKey()), pk_(shf::CreatePublicKey(sk_)) {}
+  Player(int id, std::string key_file) : id_(id) {
+    identity_sk_ = LoadOrGenerateKey(key_file);
+  }
 
-  const shf::PublicKey& GetPublicKey() const { return pk_; }
+  void InitHand(const std::string& hand_id) {
+    shf::Hash h;
+    h.Update(identity_sk_);
+    h.Update(reinterpret_cast<const uint8_t*>(hand_id.data()), hand_id.size());
+    
+    hand_sk_ = shf::ScalarFromHash(h);
+    hand_pk_ = shf::CreatePublicKey(hand_sk_);
+  }
+
+  const shf::PublicKey& GetHandPublicKey() const { return hand_pk_; }
   int GetId() const { return id_; }
 
-  // Shuffle logic: Takes input deck, returns (new deck, proof)
   ShuffleMessage Shuffle(const shf::PublicKey& joint_pk, 
                          const shf::CommitKey& ck, 
                          const Deck& input_deck) {
@@ -90,7 +138,6 @@ public:
     shf::Shuffler shuffler(joint_pk, ck, prg);
     shf::Hash hash;
     
-    // The library's Shuffle method returns a ShuffleP which CONTAINS the permuted ciphertexts
     shf::ShuffleP proof = shuffler.Shuffle(input_deck.cards, hash);
     
     Deck new_deck;
@@ -99,7 +146,6 @@ public:
     return {new_deck, proof};
   }
 
-  // Verify logic: Verifies transition from prev_deck -> claimed_shuffled_deck (inside proof)
   bool Verify(const shf::PublicKey& joint_pk, 
               const shf::CommitKey& ck, 
               const Deck& prev_deck, 
@@ -108,28 +154,24 @@ public:
     shf::Prg prg;
     shf::Shuffler shuffler(joint_pk, ck, prg);
     shf::Hash hash;
-
-    // msg.proof contains the 'permuted' field which IS the output deck.
-    // VerifyShuffle checks if prev_deck.cards -> msg.proof.permuted is valid.
     return shuffler.VerifyShuffle(prev_deck.cards, msg.proof, hash);
   }
 
-  // Decryption Share: Returns D_i = sk * U
   shf::Point ComputeDecryptionShare(const shf::Ctxt& ctxt) {
-    return ctxt.U * sk_;
+    return ctxt.U * hand_sk_;
   }
 
 private:
   int id_;
-  shf::SecretKey sk_;
-  shf::PublicKey pk_;
+  shf::Scalar identity_sk_;
+  shf::SecretKey hand_sk_;
+  shf::PublicKey hand_pk_;
 };
 
 class Server {
 public:
   Server(int num_players) : num_players_(num_players) {
     shf::CurveInit();
-    // Initialize plain deck points for later decoding
     deck_points_.reserve(52);
     for (std::uint32_t i = 0; i < 52; ++i) deck_points_.emplace_back(CardPoint(i));
   }
@@ -138,118 +180,81 @@ public:
     players_.push_back(p);
   }
 
-  // Initialize Game: Joint Key, Encrypt Deck
   void InitGame() {
-    std::cout << "[Server] Initializing game..." << std::endl;
-    joint_pk_ = shf::Point(); // Infinity
+    hand_id_ = "1"; // Hardcoded for this simulation
+    std::cout << "\n=== Starting New Hand ===\n";
+    std::cout << "[Server] Generated Hand ID: " << hand_id_ << "\n";
+
+    joint_pk_ = shf::Point();
     for (auto* p : players_) {
-      joint_pk_ = joint_pk_ + p->GetPublicKey();
+      p->InitHand(hand_id_);
+      joint_pk_ = joint_pk_ + p->GetHandPublicKey();
     }
+    std::cout << "[Server] Joint Public Key assembled from derived player keys.\n";
     
-    // Setup Commitment Key
     ck_ = shf::CreateCommitKey(52);
 
-    // Encrypt initial deck
     current_deck_.cards.clear();
     current_deck_.cards.reserve(52);
     for (const auto& pt : deck_points_) {
       current_deck_.cards.emplace_back(shf::Encrypt(joint_pk_, pt));
     }
-    std::cout << "[Server] Deck encrypted with Joint Public Key." << std::endl;
+    std::cout << "[Server] Deck encrypted.\n";
   }
 
   void RunShufflePhase() {
     std::cout << "\n--- Shuffle Phase ---\n";
-    
-    // We keep track of the deck state before the current shuffle to allow verification
     Deck prev_deck = current_deck_;
 
-    // 1. Pass deck to Player 1
-    // Player 1 shuffles
-    std::cout << "[Server] Sending deck to Player 1." << std::endl;
+    std::cout << "[Server] Sending deck to Player 1.\n";
     ShuffleMessage msg1 = players_[0]->Shuffle(joint_pk_, ck_, prev_deck);
 
-    // 2. Server verifies P1
-    std::cout << "[Server] Verifying Player 1's proof..." << std::endl;
     if (!VerifyProof(prev_deck, msg1)) {
-        std::cerr << "[Server] Player 1 CHEATED!" << std::endl;
-        exit(1);
+        std::cerr << "CHEATING DETECTED by P1\n"; exit(1);
     }
-    std::cout << "[Server] Player 1 proof VALID." << std::endl;
+    
+    if (!players_[1]->Verify(joint_pk_, ck_, prev_deck, msg1)) {
+        std::cerr << "P2 rejected P1 proof\n"; exit(1);
+    }
 
-    // Update current deck
     current_deck_ = msg1.shuffled_deck;
+    prev_deck = current_deck_;
 
-    // 3. Server sends (Original Deck, Proof) to Player 2 to verify
-    std::cout << "[Server] Sending P1's proof to Player 2 for verification." << std::endl;
-    bool p2_ok = players_[1]->Verify(joint_pk_, ck_, prev_deck, msg1);
-    if (!p2_ok) {
-        std::cerr << "[Player 2] claims Player 1 proof INVALID!" << std::endl;
-        exit(1);
-    }
-    std::cout << "[Player 2] Verified Player 1's shuffle." << std::endl;
-
-    // 4. Player 2 Shuffles (using the result from P1)
-    prev_deck = current_deck_; // Now the input to P2 is the output of P1
-    std::cout << "[Server] Sending deck to Player 2." << std::endl;
+    std::cout << "[Server] Sending deck to Player 2.\n";
     ShuffleMessage msg2 = players_[1]->Shuffle(joint_pk_, ck_, prev_deck);
 
-    // 5. Server verifies P2
-    std::cout << "[Server] Verifying Player 2's proof..." << std::endl;
     if (!VerifyProof(prev_deck, msg2)) {
-         std::cerr << "[Server] Player 2 CHEATED!" << std::endl;
-         exit(1);
+         std::cerr << "CHEATING DETECTED by P2\n"; exit(1);
     }
-    std::cout << "[Server] Player 2 proof VALID." << std::endl;
 
-    // Update current deck to final state
     current_deck_ = msg2.shuffled_deck;
-    
-    // (Optional) P1 could verify P2 here, but per prompt "so on and so on", we are done with 2 players.
-    std::cout << "[Server] Shuffle phase complete. Deck is ready.\n";
+    std::cout << "[Server] Shuffle phase complete.\n";
   }
 
   void RunGamePhase() {
-      // Index for dealing from the top of the deck
       int card_idx = 0;
-      
       std::cout << "\n--- Dealing Phase ---\n";
       
-      // Deal Hole Cards
-      // P1 Card 1
       DealCardToPlayer(0, current_deck_.cards[card_idx++]);
-      // P2 Card 1
       DealCardToPlayer(1, current_deck_.cards[card_idx++]);
-      // P1 Card 2
       DealCardToPlayer(0, current_deck_.cards[card_idx++]);
-      // P2 Card 2
       DealCardToPlayer(1, current_deck_.cards[card_idx++]);
 
-      // Burn 1 (typically) - skipping for simplicity or just incrementing
-      card_idx++; 
-
-      // Flop
+      card_idx++; // Burn
       std::cout << "\n--- Flop ---\n";
       RevealCard(current_deck_.cards[card_idx++], "Flop 1");
       RevealCard(current_deck_.cards[card_idx++], "Flop 2");
       RevealCard(current_deck_.cards[card_idx++], "Flop 3");
 
-      // Turn
       card_idx++; // Burn
       std::cout << "\n--- Turn ---\n";
       RevealCard(current_deck_.cards[card_idx++], "Turn");
 
-      // River
       card_idx++; // Burn
       std::cout << "\n--- River ---\n";
       RevealCard(current_deck_.cards[card_idx++], "River");
 
-      // Showdown (Reveal Hole Cards)
       std::cout << "\n--- Showdown ---\n";
-      // We already dealt them, but for the demo "Showdown" means revealing them to everyone.
-      // In a real game, players would reveal them voluntarily.
-      // Here, we just reveal the cards at indices 0, 2 (P1) and 1, 3 (P2).
-      
       std::cout << "Player 1 shows:\n";
       RevealCard(current_deck_.cards[0], "P1 Hole 1");
       RevealCard(current_deck_.cards[2], "P1 Hole 2");
@@ -267,44 +272,26 @@ private:
       return shuffler.VerifyShuffle(input.cards, msg.proof, hash);
   }
 
-  // To deal a card to P_target:
-  // 1. Server asks ALL OTHER players for decryption shares.
-  // 2. Server sends Ctxt + Sum(Shares_Others) to P_target.
-  // 3. P_target decrypts using their share.
   void DealCardToPlayer(int target_id, const shf::Ctxt& ctxt) {
-      std::cout << "[Server] Dealing card to Player " << target_id << "...\n";
-      
-      // Collect shares from everyone EXCEPT target
-      shf::Point sum_shares = shf::Point(); // Infinity
+      shf::Point sum_shares = shf::Point();
       for (auto* p : players_) {
           if (p->GetId() == target_id) continue;
           sum_shares = sum_shares + p->ComputeDecryptionShare(ctxt);
       }
-
-      // Simulate sending to Target
-      // Target computes their share and finishes decryption
       Player* target = players_[target_id];
       shf::Point target_share = target->ComputeDecryptionShare(ctxt);
-      
-      // Total Decrypted V = V_ctxt - (Sum_Others + Target_Share)
-      // Actually: M = V - xU. xU = Sum(x_i * U).
-      shf::Point total_decryption_factor = sum_shares + target_share;
-      shf::Point m = ctxt.V - total_decryption_factor;
+      shf::Point m = ctxt.V - (sum_shares + target_share);
       
       int card_val = DecodeCard(m, deck_points_);
       std::cout << "   (Player " << target_id << " privately sees: " 
                 << (card_val >= 0 ? CardName(card_val) : "INVALID") << ")\n";
   }
 
-  // To reveal a card to EVERYONE:
-  // 1. Server collects shares from ALL players.
-  // 2. Server decrypts and broadcasts.
   void RevealCard(const shf::Ctxt& ctxt, const std::string& label) {
       shf::Point sum_shares = shf::Point();
       for (auto* p : players_) {
           sum_shares = sum_shares + p->ComputeDecryptionShare(ctxt);
       }
-      
       shf::Point m = ctxt.V - sum_shares;
       int card_val = DecodeCard(m, deck_points_);
       std::cout << "   " << label << ": " 
@@ -313,6 +300,7 @@ private:
 
   int num_players_;
   std::vector<Player*> players_;
+  std::string hand_id_;
   shf::PublicKey joint_pk_;
   shf::CommitKey ck_;
   std::vector<shf::Point> deck_points_;
@@ -322,25 +310,19 @@ private:
 } // namespace
 
 int main() {
-  std::cout << "=== Mediated Mental Poker Simulation ===\n";
-  std::cout << "1 Server, 2 Players.\n\n";
+  std::cout << "=== Mediated Mental Poker (Deterministic Keys) ===\n";
+  
+  Player p1(0, "player0.key");
+  Player p2(1, "player1.key");
 
   Server server(2);
-  Player p1(0);
-  Player p2(1);
-
   server.RegisterPlayer(&p1);
   server.RegisterPlayer(&p2);
 
-  // 1. Setup
   server.InitGame();
-
-  // 2. Shuffle
   server.RunShufflePhase();
-
-  // 3. Play (Deal, Flop, Turn, River, Showdown)
   server.RunGamePhase();
 
-  std::cout << "\n=== Simulation Complete ===\n";
+  std::cout << "\n=== Hand Complete ===\n";
   return 0;
 }
