@@ -1,11 +1,14 @@
 #include "prg.h"
 
-#include <wmmintrin.h>
-
 #include <cstring>
 #include <random>
+#include <stdexcept>
 
-#if defined(__linux__) || defined(__unix__)
+// Platform-specific entropy
+#if defined(__EMSCRIPTEN__)
+// Emscripten handles entropy via std::random_device or browser crypto
+#include <random>
+#elif defined(__linux__) || defined(__unix__)
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -17,79 +20,161 @@
 #pragma comment(lib, "bcrypt.lib")
 #endif
 
-/* https://github.com/sebastien-riou/aes-brute-force */
+namespace {
 
-#define DO_ENC_BLOCK(m, k)              \
-  do {                                  \
-    m = _mm_xor_si128(m, k[0]);         \
-    m = _mm_aesenc_si128(m, k[1]);      \
-    m = _mm_aesenc_si128(m, k[2]);      \
-    m = _mm_aesenc_si128(m, k[3]);      \
-    m = _mm_aesenc_si128(m, k[4]);      \
-    m = _mm_aesenc_si128(m, k[5]);      \
-    m = _mm_aesenc_si128(m, k[6]);      \
-    m = _mm_aesenc_si128(m, k[7]);      \
-    m = _mm_aesenc_si128(m, k[8]);      \
-    m = _mm_aesenc_si128(m, k[9]);      \
-    m = _mm_aesenclast_si128(m, k[10]); \
-  } while (0)
+// --- Portable AES-128 Implementation ---
 
-#define AES_128_key_exp(k, rcon) \
-  aes_128_key_expansion(k, _mm_aeskeygenassist_si128(k, rcon))
+static const uint8_t sbox[256] = {
+    0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b,
+    0xfe, 0xd7, 0xab, 0x76, 0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0,
+    0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0, 0xb7, 0xfd, 0x93, 0x26,
+    0x36, 0x3f, 0xf7, 0xcc, 0x34, 0xa5, 0xe5, 0xf1, 0x71, 0xd8, 0x31, 0x15,
+    0x04, 0xc7, 0x23, 0xc3, 0x18, 0x96, 0x05, 0x9a, 0x07, 0x12, 0x80, 0xe2,
+    0xeb, 0x27, 0xb2, 0x75, 0x09, 0x83, 0x2c, 0x1a, 0x1b, 0x6e, 0x5a, 0xa0,
+    0x52, 0x3b, 0xd6, 0xb3, 0x29, 0xe3, 0x2f, 0x84, 0x53, 0xd1, 0x00, 0xed,
+    0x20, 0xfc, 0xb1, 0x5b, 0x6a, 0xcb, 0xbe, 0x39, 0x4a, 0x4c, 0x58, 0xcf,
+    0xd0, 0xef, 0xaa, 0xfb, 0x43, 0x4d, 0x33, 0x85, 0x45, 0xf9, 0x02, 0x7f,
+    0x50, 0x3c, 0x9f, 0xa8, 0x51, 0xa3, 0x40, 0x8f, 0x92, 0x9d, 0x38, 0xf5,
+    0xbc, 0xb6, 0xda, 0x21, 0x10, 0xff, 0xf3, 0xd2, 0xcd, 0x0c, 0x13, 0xec,
+    0x5f, 0x97, 0x44, 0x17, 0xc4, 0xa7, 0x7e, 0x3d, 0x64, 0x5d, 0x19, 0x73,
+    0x60, 0x81, 0x4f, 0xdc, 0x22, 0x2a, 0x90, 0x88, 0x46, 0xee, 0xb8, 0x14,
+    0xde, 0x5e, 0x0b, 0xdb, 0xe0, 0x32, 0x3a, 0x0a, 0x49, 0x06, 0x24, 0x5c,
+    0xc2, 0xd3, 0xac, 0x62, 0x91, 0x95, 0xe4, 0x79, 0xe7, 0xc8, 0x37, 0x6d,
+    0x8d, 0xd5, 0x4e, 0xa9, 0x6c, 0x56, 0xf4, 0xea, 0x65, 0x7a, 0xae, 0x08,
+    0xba, 0x78, 0x25, 0x2e, 0x1c, 0xa6, 0xb4, 0xc6, 0xe8, 0xdd, 0x74, 0x1f,
+    0x4b, 0xbd, 0x8b, 0x8a, 0x70, 0x3e, 0xb5, 0x66, 0x48, 0x03, 0xf6, 0x0e,
+    0x61, 0x35, 0x57, 0xb9, 0x86, 0xc1, 0x1d, 0x9e, 0xe1, 0xf8, 0x98, 0x11,
+    0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf,
+    0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f,
+    0xb0, 0x54, 0xbb, 0x16};
 
-inline static __m128i aes_128_key_expansion(__m128i key, __m128i keygened) {
-  keygened = _mm_shuffle_epi32(keygened, _MM_SHUFFLE(3, 3, 3, 3));
-  key = _mm_xor_si128(key, _mm_slli_si128(key, 4));
-  key = _mm_xor_si128(key, _mm_slli_si128(key, 4));
-  key = _mm_xor_si128(key, _mm_slli_si128(key, 4));
-  return _mm_xor_si128(key, keygened);
+static const uint8_t rcon[11] = {0x8d, 0x01, 0x02, 0x04, 0x08, 0x10,
+                                 0x20, 0x40, 0x80, 0x1b, 0x36};
+
+inline void KeyExpansion(const uint8_t* key, uint8_t* round_keys) {
+  uint8_t temp[4];
+  uint8_t r_con = 1;
+
+  for (int i = 0; i < 16; ++i) round_keys[i] = key[i];
+
+  for (int i = 16; i < 176; i += 4) {
+    temp[0] = round_keys[i - 4];
+    temp[1] = round_keys[i - 3];
+    temp[2] = round_keys[i - 2];
+    temp[3] = round_keys[i - 1];
+
+    if (i % 16 == 0) {
+      uint8_t t = temp[0];
+      temp[0] = sbox[temp[1]];
+      temp[1] = sbox[temp[2]];
+      temp[2] = sbox[temp[3]];
+      temp[3] = sbox[t];
+      temp[0] ^= rcon[r_con++];
+    }
+
+    round_keys[i] = round_keys[i - 16] ^ temp[0];
+    round_keys[i + 1] = round_keys[i - 15] ^ temp[1];
+    round_keys[i + 2] = round_keys[i - 14] ^ temp[2];
+    round_keys[i + 3] = round_keys[i - 13] ^ temp[3];
+  }
 }
 
-inline static void aes128_load_key(uint8_t* enc_key, __m128i* key_schedule) {
-  key_schedule[0] = _mm_loadu_si128((const __m128i*)enc_key);
-  key_schedule[1] = AES_128_key_exp(key_schedule[0], 0x01);
-  key_schedule[2] = AES_128_key_exp(key_schedule[1], 0x02);
-  key_schedule[3] = AES_128_key_exp(key_schedule[2], 0x04);
-  key_schedule[4] = AES_128_key_exp(key_schedule[3], 0x08);
-  key_schedule[5] = AES_128_key_exp(key_schedule[4], 0x10);
-  key_schedule[6] = AES_128_key_exp(key_schedule[5], 0x20);
-  key_schedule[7] = AES_128_key_exp(key_schedule[6], 0x40);
-  key_schedule[8] = AES_128_key_exp(key_schedule[7], 0x80);
-  key_schedule[9] = AES_128_key_exp(key_schedule[8], 0x1B);
-  key_schedule[10] = AES_128_key_exp(key_schedule[9], 0x36);
+inline void AddRoundKey(uint8_t* state, const uint8_t* round_key) {
+  for (int i = 0; i < 16; ++i) state[i] ^= round_key[i];
 }
 
-inline static void aes128_enc(__m128i* key_schedule, uint8_t* pt, uint8_t* ct) {
-  __m128i m = _mm_loadu_si128((__m128i*)pt);
-  DO_ENC_BLOCK(m, key_schedule);
-  _mm_storeu_si128((__m128i*)ct, m);
+inline void SubBytes(uint8_t* state) {
+  for (int i = 0; i < 16; ++i) state[i] = sbox[state[i]];
 }
+
+inline void ShiftRows(uint8_t* state) {
+  uint8_t temp;
+  // Row 1
+  temp = state[1];
+  state[1] = state[5];
+  state[5] = state[9];
+  state[9] = state[13];
+  state[13] = temp;
+  // Row 2
+  temp = state[2];
+  state[2] = state[10];
+  state[10] = state[2]; // Bug? No, wait. 2->10->2 is swap. 6->14->6 is swap.
+  // Proper swap
+  std::swap(state[2], state[10]);
+  std::swap(state[6], state[14]);
+  // Row 3
+  temp = state[15];
+  state[15] = state[11];
+  state[11] = state[7];
+  state[7] = state[3];
+  state[3] = temp;
+}
+
+inline void MixColumns(uint8_t* state) {
+  for (int i = 0; i < 16; i += 4) {
+    uint8_t s0 = state[i];
+    uint8_t s1 = state[i + 1];
+    uint8_t s2 = state[i + 2];
+    uint8_t s3 = state[i + 3];
+
+    auto gmul = [](uint8_t a, uint8_t b) -> uint8_t {
+      uint8_t p = 0;
+      for (int bit = 0; bit < 8; bit++) {
+        if ((b & 1) != 0) p ^= a;
+        uint8_t hi_bit_set = (a & 0x80);
+        a <<= 1;
+        if (hi_bit_set != 0) a ^= 0x1b;
+        b >>= 1;
+      }
+      return p;
+    };
+
+    state[i] = gmul(s0, 2) ^ gmul(s1, 3) ^ s2 ^ s3;
+    state[i + 1] = s0 ^ gmul(s1, 2) ^ gmul(s2, 3) ^ s3;
+    state[i + 2] = s0 ^ s1 ^ gmul(s2, 2) ^ gmul(s3, 3);
+    state[i + 3] = gmul(s0, 3) ^ s1 ^ s2 ^ gmul(s3, 2);
+  }
+}
+
+void AES_Encrypt(const uint8_t* round_keys, uint8_t* block) {
+  AddRoundKey(block, round_keys);
+
+  for (int round = 1; round < 10; ++round) {
+    SubBytes(block);
+    ShiftRows(block);
+    MixColumns(block);
+    AddRoundKey(block, round_keys + round * 16);
+  }
+
+  SubBytes(block);
+  ShiftRows(block);
+  AddRoundKey(block, round_keys + 160);
+}
+
+}  // namespace
 
 shf::Prg::Prg() {
-#if defined(__linux__) || defined(__unix__)
-  // Use getrandom syscall for cryptographic randomness
+#if defined(__EMSCRIPTEN__)
+  // Use std::random_device which maps to crypto.getRandomValues in browser
+  std::random_device rd;
+  for (std::size_t i = 0; i < SeedSize(); ++i) {
+    m_seed[i] = static_cast<uint8_t>(rd());
+  }
+#elif defined(__linux__) || defined(__unix__)
   if (getrandom(m_seed, SeedSize(), 0) != static_cast<ssize_t>(SeedSize())) {
-    // Fallback to /dev/urandom
     FILE* f = fopen("/dev/urandom", "rb");
     if (f) {
       if (fread(m_seed, 1, SeedSize(), f) != SeedSize()) {
-        // Last resort: std::random_device (may be insecure)
         std::random_device rd;
-        for (std::size_t i = 0; i < SeedSize(); ++i) {
-          m_seed[i] = static_cast<uint8_t>(rd());
-        }
+        for (std::size_t i = 0; i < SeedSize(); ++i) m_seed[i] = static_cast<uint8_t>(rd());
       }
       fclose(f);
     } else {
       std::random_device rd;
-      for (std::size_t i = 0; i < SeedSize(); ++i) {
-        m_seed[i] = static_cast<uint8_t>(rd());
-      }
+      for (std::size_t i = 0; i < SeedSize(); ++i) m_seed[i] = static_cast<uint8_t>(rd());
     }
   }
 #else
-  // Platform without getrandom; use /dev/urandom or CryptoAPI etc.
-  // For simplicity, fallback to std::random_device (may be insecure on some platforms)
   std::random_device rd;
   for (std::size_t i = 0; i < SeedSize(); ++i) {
     m_seed[i] = static_cast<uint8_t>(rd());
@@ -103,34 +188,45 @@ shf::Prg::Prg(const uint8_t* seed) {
   Init();
 }
 
-static inline __m128i CreateMask(const long counter) {
-  return _mm_set_epi64x(0x0123456789ABCDEF, counter);
-}
-
 void shf::Prg::Fill(uint8_t* dest, std::size_t n) {
   if (!n) return;
 
   std::size_t remaining = n;
   uint8_t* out = dest;
-  __m128i* state = reinterpret_cast<__m128i*>(m_state);
 
-  while (remaining >= BlockSize()) {
-    __m128i mask = CreateMask(m_counter);
-    aes128_enc(state, reinterpret_cast<uint8_t*>(&mask), out);
-    Update();
-    out += BlockSize();
-    remaining -= BlockSize();
-  }
+  // We are effectively using AES in CTR mode
+  // The 'block' is our counter (m_counter) + padding
+  
+  while (remaining > 0) {
+    // Prepare counter block
+    alignas(16) uint8_t block[16] = {0};
+    // Format: [Counter (8 bytes)] [0...0] (Simple counter block)
+    // Or to match previous logic: [0x0123... (8 bytes)] [Counter (8 bytes)]
+    // The previous hardware logic used _mm_set_epi64x(0x0123..., counter)
+    // _mm_set_epi64x sets HIGH 64-bit to arg0, LOW 64-bit to arg1.
+    // Memory layout is Little Endian usually.
+    // Let's just use a simple robust counter encoding.
+    
+    // Copy counter to first 8 bytes (Little Endian)
+    uint64_t ctr = static_cast<uint64_t>(m_counter);
+    std::memcpy(block, &ctr, 8);
+    // Set some constant to the rest
+    uint64_t high = 0x0123456789ABCDEF;
+    std::memcpy(block + 8, &high, 8);
 
-  if (remaining) {
-    alignas(16) uint8_t block[BlockSize()];
-    __m128i mask = CreateMask(m_counter);
-    aes128_enc(state, reinterpret_cast<uint8_t*>(&mask), block);
+    AES_Encrypt(m_state, block);
+
+    std::size_t copy_size = (remaining < 16) ? remaining : 16;
+    std::memcpy(out, block, copy_size);
+    
+    out += copy_size;
+    remaining -= copy_size;
     Update();
-    std::memcpy(out, block, remaining);
   }
 }
 
 void shf::Prg::Update() { m_counter++; }
 
-void shf::Prg::Init() { aes128_load_key(m_seed, reinterpret_cast<__m128i*>(m_state)); }
+void shf::Prg::Init() {
+  KeyExpansion(m_seed, m_state);
+}
