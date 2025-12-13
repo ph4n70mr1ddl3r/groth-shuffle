@@ -181,7 +181,8 @@ private:
 
 class Server {
 public:
-  Server(int num_players) : num_players_(num_players) {
+  Server(int num_players) {
+    (void)num_players;
     shf::CurveInit();
     deck_points_.reserve(52);
     for (std::uint32_t i = 0; i < 52; ++i) deck_points_.emplace_back(CardPoint(i));
@@ -313,7 +314,6 @@ private:
                 << (card_val >= 0 ? CardName(card_val) : "INVALID") << "\n";
   }
 
-  int num_players_;
   std::vector<Player*> players_;
   std::string hand_id_;
   shf::PublicKey joint_pk_;

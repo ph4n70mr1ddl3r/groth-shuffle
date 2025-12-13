@@ -84,4 +84,10 @@ if(EMSCRIPTEN)
     set_target_properties(groth_shuffle_js PROPERTIES LINK_FLAGS 
         "--bind -sMODULARIZE=1 -sEXPORT_NAME='GrothShuffle' -sALLOW_MEMORY_GROWTH=1 -sWASM=1 -sDISABLE_EXCEPTION_CATCHING=0 -g0 -O3 -Wno-limited-postlink-optimizations"
     )
+
+    add_executable( mediated_demo_js demo/mediated_demo.cc ${SOURCE_FILES} )
+    target_link_libraries( mediated_demo_js relic_s )
+    set_target_properties(mediated_demo_js PROPERTIES LINK_FLAGS 
+        "-sALLOW_MEMORY_GROWTH=1 -sWASM=1 -sDISABLE_EXCEPTION_CATCHING=0 -sNODERAWFS=1 -O3"
+    )
 endif()

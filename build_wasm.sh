@@ -13,6 +13,6 @@ echo "Configuring WASM build..."
 emcmake cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release
 
 echo "Building..."
-cmake --build "$BUILD_DIR" --target groth_shuffle_js -j
+cmake --build "$BUILD_DIR" --target groth_shuffle_js mediated_demo_js -j
 
-echo "Done. Output in $BUILD_DIR/groth_shuffle_js.js and .wasm"
+echo "Done. Output in $BUILD_DIR/groth_shuffle_js.js, $BUILD_DIR/mediated_demo_js.js and .wasm"
