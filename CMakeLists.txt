@@ -5,8 +5,15 @@ project( shuffle
   DESCRIPTION "simple implementation of a cryptographic Shuffle" )
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS
-  "${CMAKE_CXX_FLAGS} -march=native -Wall -Wextra -pedantic -Werror")
+if(EMSCRIPTEN)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -Werror")
+  set(ARITH "easy" CACHE STRING "Arithmetic backend" FORCE)
+  set(MULTI "" CACHE STRING "Multi-threading support" FORCE)
+  set(WSIZE 32 CACHE INTEGER "Word size" FORCE)
+  set(OPSYS "NONE" CACHE STRING "Operating system" FORCE)
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -Wextra -pedantic -Werror")
+endif()
 
 # --- Relic Configuration ---
 # We configure Relic BEFORE adding the subdirectory so it picks up our preferences.
@@ -71,3 +78,16 @@ add_executable( tests.x ${SOURCE_FILES} ${TEST_SOURCE_FILES} )
 target_link_libraries( tests.x
   relic_s
   pthread )
+
+if(EMSCRIPTEN)
+    add_executable( groth_shuffle_js src/js_bindings.cc ${SOURCE_FILES} )
+    target_link_libraries( groth_shuffle_js relic_s )
+    target_link_options( groth_shuffle_js PRIVATE 
+        "--bind" 
+        "-sMODULARIZE=1" 
+        "-sEXPORT_NAME='GrothShuffle'"
+        "-sALLOW_MEMORY_GROWTH=1"
+        "-sWASM=1"
+        "-sDISABLE_EXCEPTION_CATCHING=0"
+    )
+endif()
