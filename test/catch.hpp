@@ -25,7 +25,7 @@
 #define SECTION(name)
 #define TEST_CASE(name, tags) void test_##__LINE__()
 #define REQUIRE(expr) do { if (!(expr)) { std::cerr << "FAILED: " << #expr << " at " << __FILE__ << ":" << __LINE__ << "\n"; exit(1); } } while(0)
-#define CHECK(expr) do { if (!(expr)) { std::cerr << "FAILED: " << #expr << " at " << __FILE__ << ":" << __LINE__ << "\n"; } } while(0)
+#define TEST_CHECK(expr) do { if (!(expr)) { std::cerr << "FAILED: " << #expr << " at " << __FILE__ << ":" << __LINE__ << "\n"; } } while(0)
 
 // Simple runner
 struct TestRunner {

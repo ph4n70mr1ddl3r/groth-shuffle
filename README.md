@@ -11,17 +11,16 @@ elliptic curve operations.
 
 ### Dependencies
 - **CMake** (≥3.10)
-- **GMP** (GNU Multiple Precision Arithmetic Library)
 - **C++17** compiler
 
 On Debian/Ubuntu:
 ```bash
-sudo apt install cmake libgmp-dev g++
+sudo apt install cmake g++
 ```
 
 On macOS (using Homebrew):
 ```bash
-brew install cmake gmp
+brew install cmake
 ```
 
 ### Build & Test

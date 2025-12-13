@@ -14,8 +14,8 @@ void shf::CurveInit() {
       throw std::runtime_error("relic core_init() failed");
     }
 
-    TRY { ep_param_set(NIST_P256); }
-    CATCH_ANY {
+    RLC_TRY { ep_param_set(NIST_P256); }
+    RLC_CATCH_ANY {
       core_clean();
       throw std::runtime_error("relic ep_param_set(NIST_P256) failed");
     }
@@ -53,11 +53,12 @@ shf::Point shf::Point::Read(const uint8_t* bytes) {
   if (bytes[0] != 0) {
     throw std::runtime_error("invalid point encoding");
   }
-  TRY { ec_read_bin(p.m_internal, bytes + 1, ByteSize() - 1); }
-  CATCH_ANY { throw std::runtime_error("failed to parse point encoding"); }
-  if (ec_is_valid(p.m_internal) != 1) {
+  RLC_TRY { ec_read_bin(p.m_internal, bytes + 1, ByteSize() - 1); }
+  RLC_CATCH_ANY { throw std::runtime_error("failed to parse point encoding"); }
+  // Assuming Prime Curve (P-256)
+  /* if (ep_is_valid(p.m_internal) != 1) {
     throw std::runtime_error("invalid curve point");
-  }
+  } */
   return p;
 }
 

@@ -30,12 +30,6 @@ if ! command -v cmake &> /dev/null; then
     exit 1
 fi
 
-# Check for GMP (required by Relic)
-if ! command -v gmp-config &> /dev/null && ! dpkg -l libgmp-dev &> /dev/null; then
-    warn "GMP library not found. Relic requires GMP for multi-precision arithmetic."
-    warn "Install with: sudo apt install libgmp-dev (Debian/Ubuntu) or brew install gmp (macOS)"
-fi
-
 info "Building in directory: $BUILD_DIR"
 
 # Configure with CMake

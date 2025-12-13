@@ -1,14 +1,12 @@
 #ifndef SHF_CURVE_H
 #define SHF_CURVE_H
 
-#include <gmp.h>
-
 #include <cstdint>
 
 #include "prg.h"
 
 extern "C" {
-#include "include/relic/relic.h"
+#include "relic.h"
 }
 
 namespace shf {
