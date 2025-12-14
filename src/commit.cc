@@ -1,5 +1,7 @@
 #include "commit.h"
 
+#include "parallel.h"
+#include <thread>
 #include <stdexcept>
 
 shf::CommitKey shf::CreateCommitKey(const std::size_t size) {
@@ -20,7 +22,18 @@ shf::Point shf::Commit(const shf::CommitKey& ck, const shf::Scalar& r,
     throw std::invalid_argument("commitment key too small");
   }
   Point C;
-  for (std::size_t i = 0; i < n; ++i) C += m[i] * ck.G[i];
+  unsigned int max_threads = std::thread::hardware_concurrency();
+  if (max_threads == 0) max_threads = 4;
+  std::vector<Point> partial_sums(max_threads);
+
+  shf::ParallelChunks(0, n, [&](std::size_t start, std::size_t end, std::size_t t_id) {
+    if (t_id < partial_sums.size()) {
+        for (std::size_t i = start; i < end; ++i) partial_sums[t_id] += m[i] * ck.G[i];
+    }
+  });
+
+  for (const auto& p : partial_sums) C += p;
+
   return C + r * ck.H;
 }
 

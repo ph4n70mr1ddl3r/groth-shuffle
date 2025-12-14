@@ -1,5 +1,7 @@
 #include "shuffler.h"
 
+#include "parallel.h"
+#include <thread>
 #include <iostream>
 #include <numeric>
 #include <limits>
@@ -71,9 +73,12 @@ static inline std::vector<shf::Ctxt> Randomize(
     const std::vector<shf::Scalar>& rs) {
   const std::size_t n = Es.size();
   TYPED_VECTOR(shf::Ctxt, randomized, n);
-  for (std::size_t i = 0; i < n; ++i) {
-    randomized.emplace_back(Randomize(pk, Es[i], rs[i]));
-  }
+  randomized.resize(n);
+  shf::ParallelChunks(0, n, [&](std::size_t start, std::size_t end, std::size_t) {
+    for (std::size_t i = start; i < end; ++i) {
+      randomized[i] = Randomize(pk, Es[i], rs[i]);
+    }
+  });
   return randomized;
 }
 
@@ -169,7 +174,17 @@ shf::ShuffleP shf::Shuffler::Shuffle(const std::vector<shf::Ctxt>& Es,
 static inline shf::Point CommitConstantNoRandomness(const shf::CommitKey& ck,
                                                    const shf::Scalar& s) {
   shf::Point Cz;
-  for (const shf::Point& Gi : ck.G) Cz += Gi * s;
+  unsigned int max_threads = std::thread::hardware_concurrency();
+  if (max_threads == 0) max_threads = 4;
+  std::vector<shf::Point> partial_sums(max_threads);
+
+  shf::ParallelChunks(0, ck.G.size(), [&](std::size_t start, std::size_t end, std::size_t t_id) {
+    if (t_id < partial_sums.size()) {
+        for (std::size_t i = start; i < end; ++i) partial_sums[t_id] += ck.G[i] * s;
+    }
+  });
+
+  for (const auto& p : partial_sums) Cz += p;
   return Cz;
 }
 

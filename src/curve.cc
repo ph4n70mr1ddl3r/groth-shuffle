@@ -8,18 +8,19 @@ static bn_t k_curve_order;
 static std::once_flag k_curve_init_once;
 
 void shf::CurveInit() {
-  std::call_once(k_curve_init_once, []() {
+  if (core_get() == NULL) {
     core_init();
     if (err_get_code() != RLC_OK) {
       throw std::runtime_error("relic core_init() failed");
     }
-
     RLC_TRY { ep_param_set(NIST_P256); }
     RLC_CATCH_ANY {
       core_clean();
       throw std::runtime_error("relic ep_param_set(NIST_P256) failed");
     }
+  }
 
+  std::call_once(k_curve_init_once, []() {
     bn_new(k_curve_order);
     ec_curve_get_ord(k_curve_order);
     if (static_cast<std::size_t>(bn_size_bin(k_curve_order)) >

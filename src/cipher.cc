@@ -1,5 +1,7 @@
 #include "cipher.h"
 
+#include "parallel.h"
+#include <thread>
 #include <stdexcept>
 
 shf::SecretKey shf::CreateSecretKey() { return shf::Scalar::CreateRandom(); }
@@ -35,9 +37,21 @@ shf::Ctxt shf::Dot(const std::vector<shf::Scalar>& as,
   if (as.size() != Es.size() || as.empty()) {
     throw std::invalid_argument("dot product size mismatch");
   }
-  shf::Ctxt E = shf::Multiply(as[0], Es[0]);
   const auto n = as.size();
-  for (std::size_t i = 1; i < n; ++i)
-    E = shf::Add(E, shf::Multiply(as[i], Es[i]));
+  unsigned int max_threads = std::thread::hardware_concurrency();
+  if (max_threads == 0) max_threads = 4;
+  std::vector<shf::Ctxt> partial_sums(max_threads, {Point(), Point()});
+
+  shf::ParallelChunks(0, n, [&](std::size_t start, std::size_t end, std::size_t t_id) {
+    if (t_id < partial_sums.size()) {
+        for (std::size_t i = start; i < end; ++i) {
+            partial_sums[t_id] = shf::Add(partial_sums[t_id], shf::Multiply(as[i], Es[i]));
+        }
+    }
+  });
+
+  shf::Ctxt E = {Point(), Point()};
+  for (const auto& p : partial_sums) E = shf::Add(E, p);
+
   return E;
 }

@@ -6,9 +6,9 @@ project( shuffle
 
 set(CMAKE_CXX_STANDARD 17)
 if(EMSCRIPTEN)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -Werror")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -Werror -pthread")
   set(ARITH "easy" CACHE STRING "Arithmetic backend" FORCE)
-  set(MULTI "" CACHE STRING "Multi-threading support" FORCE)
+  set(MULTI "PTHREAD" CACHE STRING "Multi-threading support" FORCE)
   set(WSIZE "32" CACHE STRING "Word size" FORCE)
   set(OPSYS "NONE" CACHE STRING "Operating system" FORCE)
   set(ARCH "NONE" CACHE STRING "Architecture" FORCE)
@@ -52,6 +52,7 @@ set(SOURCE_FILES
     src/commit.cc
     src/curve.cc
     src/hash.cc
+    src/parallel.cc
     src/prg.cc
     src/shuffler.cc
     src/zkp.cc)
@@ -82,12 +83,12 @@ if(EMSCRIPTEN)
     add_executable( groth_shuffle_js src/js_bindings.cc ${SOURCE_FILES} )
     target_link_libraries( groth_shuffle_js relic_s )
     set_target_properties(groth_shuffle_js PROPERTIES LINK_FLAGS 
-        "--bind -sMODULARIZE=1 -sEXPORT_NAME='GrothShuffle' -sALLOW_MEMORY_GROWTH=1 -sWASM=1 -sDISABLE_EXCEPTION_CATCHING=0 -g0 -O3 -Wno-limited-postlink-optimizations"
+        "--bind -sMODULARIZE=1 -sEXPORT_NAME='GrothShuffle' -sALLOW_MEMORY_GROWTH=1 -sWASM=1 -sDISABLE_EXCEPTION_CATCHING=0 -g0 -O3 -flto -Wno-limited-postlink-optimizations -sUSE_PTHREADS=1 -sPTHREAD_POOL_SIZE=4 -Wno-pthreads-mem-growth"
     )
 
     add_executable( mediated_demo_js demo/mediated_demo.cc ${SOURCE_FILES} )
     target_link_libraries( mediated_demo_js relic_s )
     set_target_properties(mediated_demo_js PROPERTIES LINK_FLAGS 
-        "-sALLOW_MEMORY_GROWTH=1 -sWASM=1 -sDISABLE_EXCEPTION_CATCHING=0 -sNODERAWFS=1 -O3"
+        "-sALLOW_MEMORY_GROWTH=1 -sWASM=1 -sDISABLE_EXCEPTION_CATCHING=0 -sNODERAWFS=1 -O3 -flto -sUSE_PTHREADS=1 -sPTHREAD_POOL_SIZE=4 -Wno-pthreads-mem-growth"
     )
 endif()
