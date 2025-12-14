@@ -140,6 +140,7 @@ void shf::Point::Write(uint8_t* dest) const {
 }
 
 shf::Scalar::Scalar() {
+  CurveInit();
   bn_new(m_internal);
   bn_zero(m_internal);
 }
@@ -147,21 +148,25 @@ shf::Scalar::Scalar() {
 shf::Scalar::~Scalar() { bn_free(m_internal); }
 
 shf::Scalar::Scalar(const shf::Scalar& other) {
+  CurveInit();
   bn_new(m_internal);
   bn_copy(m_internal, other.m_internal);
 }
 
 shf::Scalar::Scalar(shf::Scalar&& other) {
+  CurveInit();
   bn_new(m_internal);
   bn_copy(m_internal, other.m_internal);
 }
 
 shf::Scalar& shf::Scalar::operator=(const shf::Scalar& other) {
+  CurveInit();
   bn_copy(m_internal, other.m_internal);
   return *this;
 }
 
 shf::Scalar& shf::Scalar::operator=(shf::Scalar&& other) {
+  CurveInit();
   bn_copy(m_internal, other.m_internal);
   return *this;
 }

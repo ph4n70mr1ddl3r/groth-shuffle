@@ -6,7 +6,7 @@
 static inline shf::Scalar DLogChallenge(shf::Hash& hash, const shf::Point& p0,
                                        const shf::Point& p1,
                                        const shf::Point& p2) {
-  hash.Update(reinterpret_cast<const uint8_t*>("DLOG"), 4);
+  hash.Update(reinterpret_cast<const uint8_t*>("DLOG"), sizeof("DLOG") - 1);
   hash.Update(p0).Update(p1).Update(p2);
   return ScalarFromHash(hash);
 }
@@ -40,7 +40,7 @@ static inline shf::Scalar DLogEqChallenge(shf::Hash& hash, const shf::Point& p0,
                                          const shf::Point& p3,
                                          const shf::Point& p4,
                                          const shf::Point& p5) {
-  hash.Update(reinterpret_cast<const uint8_t*>("DLOGEQ"), 5);
+  hash.Update(reinterpret_cast<const uint8_t*>("DLOGEQ"), sizeof("DLOGEQ") - 1);
   hash.Update(p0).Update(p1).Update(p2).Update(p3).Update(p4).Update(p5);
   return ScalarFromHash(hash);
 }
@@ -81,10 +81,13 @@ bool shf::VerifyProof(const shf::DLogEqS& statement, shf::Hash& hash,
   std::vector<shf::Scalar> _name;    \
   _name.reserve(_size);
 
-static inline shf::Scalar ProductChallenge(shf::Hash& hash, const shf::Point& C0,
+static inline shf::Scalar ProductChallenge(shf::Hash& hash,
+                                          const shf::ProductS& statement,
+                                          const shf::Point& C0,
                                           const shf::Point& C1,
                                           const shf::Point& C2) {
-  hash.Update(reinterpret_cast<const uint8_t*>("PRODUCT"), 7);
+  hash.Update(reinterpret_cast<const uint8_t*>("PRODUCT"), sizeof("PRODUCT") - 1);
+  hash.Update(statement.C).Update(statement.b);
   hash.Update(C0).Update(C1).Update(C2);
   return shf::ScalarFromHash(hash);
 }
@@ -129,7 +132,7 @@ shf::ProductP shf::CreateProof(const shf::CommitKey& ck, shf::Hash& hash,
   const auto Cr1 = Commit(ck, sd, prg);
   const auto Cr2 = Commit(ck, bd, prg);
 
-  const auto c = ProductChallenge(hash, Cr0.C, Cr1.C, Cr2.C);
+  const auto c = ProductChallenge(hash, statement, Cr0.C, Cr1.C, Cr2.C);
 
   SCALAR_VECTOR(aa, n);
   SCALAR_VECTOR(bb, n);
@@ -151,7 +154,7 @@ bool shf::VerifyProof(const shf::CommitKey& ck, shf::Hash& hash,
   const auto C1 = proof.C1;
   const auto C2 = proof.C2;
 
-  const auto c = ProductChallenge(hash, C0, C1, C2);
+  const auto c = ProductChallenge(hash, statement, C0, C1, C2);
 
   const auto C = statement.C;
   const auto lhs0 = c * C + C0;
@@ -189,7 +192,8 @@ static inline shf::CommitmentAndRandomness CommitOne(const shf::CommitKey& ck,
 
 static inline void HashStatement(shf::Hash& hash,
                                  const shf::MultiExpS& statement) {
-  hash.Update(reinterpret_cast<const uint8_t*>("MULTIEXP_STMT"), 13);
+  hash.Update(reinterpret_cast<const uint8_t*>("MULTIEXP_STMT"),
+              sizeof("MULTIEXP_STMT") - 1);
   const auto& Es = statement.Es;
   const auto& E = statement.E;
   const auto& C = statement.C;
@@ -202,7 +206,8 @@ static inline shf::Scalar MultiExpChallenge(shf::Hash& hash,
                                            const shf::Point& C0,
                                            const shf::Point& C1,
                                            const shf::Ctxt& E) {
-  hash.Update(reinterpret_cast<const uint8_t*>("MULTIEXP_CHAL"), 13);
+  hash.Update(reinterpret_cast<const uint8_t*>("MULTIEXP_CHAL"),
+              sizeof("MULTIEXP_CHAL") - 1);
   HashStatement(hash, statement);
   hash.Update(C0).Update(C1).Update(E.U).Update(E.V);
   return shf::ScalarFromHash(hash);

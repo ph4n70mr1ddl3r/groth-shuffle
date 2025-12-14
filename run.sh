@@ -42,3 +42,7 @@ cmake --build "$BUILD_DIR" -j "$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/n
 
 info "Build completed successfully."
 info "Demo executable: $BUILD_DIR/mediated_demo.x"
+
+info "Running tests..."
+ctest --test-dir "$BUILD_DIR" --output-on-failure
+info "All tests passed."

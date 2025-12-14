@@ -5,6 +5,7 @@ project( shuffle
   DESCRIPTION "simple implementation of a cryptographic Shuffle" )
 
 set(CMAKE_CXX_STANDARD 17)
+include(CTest)
 if(EMSCRIPTEN)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -Werror -pthread")
   set(ARITH "easy" CACHE STRING "Arithmetic backend" FORCE)
@@ -78,6 +79,9 @@ add_executable( tests.x ${SOURCE_FILES} ${TEST_SOURCE_FILES} )
 target_link_libraries( tests.x
   relic_s
   pthread )
+if(BUILD_TESTING)
+  add_test(NAME shuffle_tests COMMAND tests.x)
+endif()
 
 if(EMSCRIPTEN)
     add_executable( groth_shuffle_js src/js_bindings.cc ${SOURCE_FILES} )
