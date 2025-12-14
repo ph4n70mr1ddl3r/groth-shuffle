@@ -9,7 +9,7 @@ if(EMSCRIPTEN)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -Werror")
   set(ARITH "easy" CACHE STRING "Arithmetic backend" FORCE)
   set(MULTI "" CACHE STRING "Multi-threading support" FORCE)
-  set(WSIZE 32 CACHE INTEGER "Word size" FORCE)
+  set(WSIZE "32" CACHE STRING "Word size" FORCE)
   set(OPSYS "NONE" CACHE STRING "Operating system" FORCE)
   set(ARCH "NONE" CACHE STRING "Architecture" FORCE)
 else()
@@ -20,14 +20,14 @@ endif()
 # We configure Relic BEFORE adding the subdirectory so it picks up our preferences.
 
 set(MULTI "PTHREAD" CACHE STRING "Multi-threading support")
-set(WSIZE 64 CACHE INTEGER "Word size")
+set(WSIZE "64" CACHE STRING "Word size")
 set(ALLOC "AUTO" CACHE STRING "Allocation method")
 
 # Arithmetic backend: Use "easy" for portability/Wasm (no GMP dependency).
 set(ARITH "easy" CACHE STRING "Arithmetic backend")
 
 # Curve support
-set(FP_PRIME 256 CACHE INTEGER "Prime field size")
+set(FP_PRIME "256" CACHE STRING "Prime field size")
 set(EC_METHD "PRIME" CACHE STRING "Elliptic curve method")
 # Required for P-256 support
 set(EC_PLAIN ON CACHE BOOL "Enable ordinary elliptic curves") 
