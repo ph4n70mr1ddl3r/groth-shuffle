@@ -74,6 +74,12 @@ target_link_libraries( mediated_demo.x
   relic_s
   pthread )
 
+# Detailed Mediated Demo
+add_executable( server_mediated_detailed.x ${SOURCE_FILES} demo/server_mediated_detailed.cc )
+target_link_libraries( server_mediated_detailed.x
+  relic_s
+  pthread )
+
 # Tests
 add_executable( tests.x ${SOURCE_FILES} ${TEST_SOURCE_FILES} )
 target_link_libraries( tests.x
