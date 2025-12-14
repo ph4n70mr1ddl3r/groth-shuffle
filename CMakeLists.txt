@@ -6,16 +6,7 @@ project( shuffle
 
 set(CMAKE_CXX_STANDARD 17)
 include(CTest)
-if(EMSCRIPTEN)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -Werror -pthread")
-  set(ARITH "easy" CACHE STRING "Arithmetic backend" FORCE)
-  set(MULTI "PTHREAD" CACHE STRING "Multi-threading support" FORCE)
-  set(WSIZE "32" CACHE STRING "Word size" FORCE)
-  set(OPSYS "NONE" CACHE STRING "Operating system" FORCE)
-  set(ARCH "NONE" CACHE STRING "Architecture" FORCE)
-else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -Wextra -pedantic -Werror")
-endif()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -Wextra -pedantic -Werror")
 
 # --- Relic Configuration ---
 # We configure Relic BEFORE adding the subdirectory so it picks up our preferences.
@@ -24,7 +15,7 @@ set(MULTI "PTHREAD" CACHE STRING "Multi-threading support")
 set(WSIZE "64" CACHE STRING "Word size")
 set(ALLOC "AUTO" CACHE STRING "Allocation method")
 
-# Arithmetic backend: Use "easy" for portability/Wasm (no GMP dependency).
+# Arithmetic backend: Use "easy" for portability (no GMP dependency).
 set(ARITH "easy" CACHE STRING "Arithmetic backend")
 
 # Curve support
@@ -67,16 +58,9 @@ include_directories(src)
 
 # --- Targets ---
 
-# Mediated Demo
-add_executable( mediated_demo.x ${SOURCE_FILES} demo/mediated_demo.cc )
-# Link against the 'relic_s' static library target defined by Relic's CMake
-target_link_libraries( mediated_demo.x
-  relic_s
-  pthread )
-
 # Detailed Mediated Demo
-add_executable( server_mediated_detailed.x ${SOURCE_FILES} demo/server_mediated_detailed.cc )
-target_link_libraries( server_mediated_detailed.x
+add_executable( shuffle_simulation.x ${SOURCE_FILES} demo/server_mediated_detailed.cc )
+target_link_libraries( shuffle_simulation.x
   relic_s
   pthread )
 
@@ -89,16 +73,4 @@ if(BUILD_TESTING)
   add_test(NAME shuffle_tests COMMAND tests.x)
 endif()
 
-if(EMSCRIPTEN)
-    add_executable( groth_shuffle_js src/js_bindings.cc ${SOURCE_FILES} )
-    target_link_libraries( groth_shuffle_js relic_s )
-    set_target_properties(groth_shuffle_js PROPERTIES LINK_FLAGS 
-        "--bind -sMODULARIZE=1 -sEXPORT_NAME='GrothShuffle' -sALLOW_MEMORY_GROWTH=1 -sWASM=1 -sDISABLE_EXCEPTION_CATCHING=0 -g0 -O3 -flto -Wno-limited-postlink-optimizations -sUSE_PTHREADS=1 -sPTHREAD_POOL_SIZE=4 -Wno-pthreads-mem-growth"
-    )
 
-    add_executable( mediated_demo_js demo/mediated_demo.cc ${SOURCE_FILES} )
-    target_link_libraries( mediated_demo_js relic_s )
-    set_target_properties(mediated_demo_js PROPERTIES LINK_FLAGS 
-        "-sALLOW_MEMORY_GROWTH=1 -sWASM=1 -sDISABLE_EXCEPTION_CATCHING=0 -sNODERAWFS=1 -O3 -flto -sUSE_PTHREADS=1 -sPTHREAD_POOL_SIZE=4 -Wno-pthreads-mem-growth"
-    )
-endif()

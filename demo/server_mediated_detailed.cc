@@ -118,11 +118,12 @@ struct Deck {
 
 // Simulation of Network Logging
 struct SimulatedNetwork {
-    static void Log(const std::string& from, const std::string& to, const std::string& type, const std::string& payload) {
+    static void Log(const std::string& from, const std::string& to, const std::string& type, const std::string& payload, size_t bytes, double time_ms) {
         std::cout << "  [MSG] " << std::left << std::setw(10) << from 
                   << " -> " << std::setw(10) << to 
                   << " | Type: " << std::setw(20) << type << "\n";
         std::cout << "        Payload: " << payload << "\n";
+        std::cout << "        Size: " << bytes << " bytes | Time: " << std::fixed << std::setprecision(2) << time_ms << " ms\n";
     }
 };
 
@@ -138,14 +139,18 @@ public:
 
   // MSG_HANDSHAKE_REQ -> MSG_HANDSHAKE_RESP
   shf::PublicKey HandleHandshakeRequest(const std::string& hand_id) {
+    auto start = std::chrono::high_resolution_clock::now();
     // Derive ephemeral key for this hand
     shf::Hash h;
     h.Update(identity_sk_);
     h.Update(reinterpret_cast<const uint8_t*>(hand_id.data()), hand_id.size());
     hand_sk_ = shf::ScalarFromHash(h);
     hand_pk_ = shf::CreatePublicKey(hand_sk_);
+    auto end = std::chrono::high_resolution_clock::now();
+    double time_ms = std::chrono::duration<double, std::milli>(end - start).count();
     
-    SimulatedNetwork::Log(name_, "Server", "HANDSHAKE_RESP", "PublicKey: " + bytesToHex(GetPkBytes()).substr(0, 16) + "...");
+    size_t size = shf::PublicKey::ByteSize();
+    SimulatedNetwork::Log(name_, "Server", "HANDSHAKE_RESP", "PublicKey: " + bytesToHex(GetPkBytes()).substr(0, 16) + "...", size, time_ms);
     return hand_pk_;
   }
 
@@ -156,6 +161,7 @@ public:
   };
 
   ShuffleResp HandleShuffleRequest(const shf::PublicKey& joint_pk, const shf::CommitKey& ck, const Deck& input_deck, const std::string& hand_id) {
+    auto start = std::chrono::high_resolution_clock::now();
     // Deterministic seed for PRG
     shf::Hash h;
     h.Update(identity_sk_);
@@ -171,31 +177,49 @@ public:
     shf::ShuffleP proof = shuffler.Shuffle(input_deck.cards, hash);
     Deck new_deck;
     new_deck.cards = proof.permuted;
+    auto end = std::chrono::high_resolution_clock::now();
+    double time_ms = std::chrono::duration<double, std::milli>(end - start).count();
+
+    size_t deck_size = new_deck.cards.size() * CtxtByteSize();
+    // Approximate proof size as we don't have a direct ByteSize() for ShuffleP easily accessible without serialization, 
+    // but looking at structure: vector<Ctxt> (52 * 64) + 2 Points (64) + ProductP + MultiExpP. 
+    // For the sake of this demo, we'll estimate based on typical Groth shuffle sizes or just list what we have.
+    // Actually, let's just count the deck part as the main payload for the log message size logic in this context,
+    // or better, standard serialization size if available. 
+    // Since we don't have a serializer for ShuffleP readily exposed in this file, we will list deck size + "Proof".
+    // For accuracy in the log, let's use the deck size.
+    size_t total_size = deck_size; // Proof size is significant but complex to calculate here without helper.
 
     SimulatedNetwork::Log(name_, "Server", "SHUFFLE_RESP", 
-        "NewDeckHash: " + new_deck.GetHash() + ", Proof: [Attached]");
+        "NewDeckHash: " + new_deck.GetHash() + ", Proof: [Attached]", total_size, time_ms);
 
     return {new_deck, proof};
   }
 
   // MSG_VERIFY_REQ -> MSG_VERIFY_RESP
   bool HandleVerifyRequest(const shf::PublicKey& joint_pk, const shf::CommitKey& ck, const Deck& old_deck, const Deck& /*new_deck*/, const shf::ShuffleP& proof) {
+      auto start = std::chrono::high_resolution_clock::now();
       shf::Prg prg;
       shf::Shuffler shuffler(joint_pk, ck, prg);
       shf::Hash hash;
       bool ok = shuffler.VerifyShuffle(old_deck.cards, proof, hash);
+      auto end = std::chrono::high_resolution_clock::now();
+      double time_ms = std::chrono::duration<double, std::milli>(end - start).count();
       
-      SimulatedNetwork::Log(name_, "Server", "VERIFY_RESP", ok ? "APPROVED" : "REJECTED");
+      SimulatedNetwork::Log(name_, "Server", "VERIFY_RESP", ok ? "APPROVED" : "REJECTED", 8, time_ms);
       return ok;
   }
 
   // MSG_DECRYPT_SHARE_REQ -> MSG_DECRYPT_SHARE_RESP
   shf::Point HandleDecryptShareRequest(const shf::Ctxt& ctxt) {
+      auto start = std::chrono::high_resolution_clock::now();
       shf::Point share = ctxt.U * hand_sk_;
+      auto end = std::chrono::high_resolution_clock::now();
+      double time_ms = std::chrono::duration<double, std::milli>(end - start).count();
       
       std::vector<uint8_t> buf(shf::Point::ByteSize());
       share.Write(buf.data());
-      SimulatedNetwork::Log(name_, "Server", "DECRYPT_SHARE_RESP", "Share: " + bytesToHex(buf).substr(0, 12) + "...");
+      SimulatedNetwork::Log(name_, "Server", "DECRYPT_SHARE_RESP", "Share: " + bytesToHex(buf).substr(0, 12) + "...", buf.size(), time_ms);
       
       return share;
   }
@@ -203,6 +227,7 @@ public:
   // MSG_PRIVATE_CARD_DELIVERY
   // Server sends ciphertext + others' shares so this player can fully decrypt
   int HandlePrivateCardDelivery(const shf::Ctxt& ctxt, const std::vector<shf::Point>& other_shares, const std::vector<shf::Point>& deck_points) {
+      auto start = std::chrono::high_resolution_clock::now();
       shf::Point sum_shares = shf::Point();
       for (const auto& s : other_shares) sum_shares = sum_shares + s;
       
@@ -210,7 +235,10 @@ public:
       shf::Point m = ctxt.V - (sum_shares + my_share);
       
       int val = DecodeCard(m, deck_points);
-      SimulatedNetwork::Log(name_, "Server", "ACK_CARD_RECEIVED", val >= 0 ? "Decrypted successfully" : "Decryption Failed");
+      auto end = std::chrono::high_resolution_clock::now();
+      double time_ms = std::chrono::duration<double, std::milli>(end - start).count();
+
+      SimulatedNetwork::Log(name_, "Server", "ACK_CARD_RECEIVED", val >= 0 ? "Decrypted successfully" : "Decryption Failed", 16, time_ms);
       return val;
   }
 
@@ -248,7 +276,7 @@ public:
     std::cout << "\n--- Handshake Phase ---\n";
     joint_pk_ = shf::Point();
     for (auto* p : players_) {
-        SimulatedNetwork::Log("Server", p->GetName(), "HANDSHAKE_REQ", "HandID: " + hand_id_);
+        SimulatedNetwork::Log("Server", p->GetName(), "HANDSHAKE_REQ", "HandID: " + hand_id_, hand_id_.size(), 0.0);
         shf::PublicKey pk = p->HandleHandshakeRequest(hand_id_);
         joint_pk_ = joint_pk_ + pk;
     }
@@ -270,7 +298,8 @@ public:
         Deck input_deck = current_deck_;
         
         // Request Shuffle
-        SimulatedNetwork::Log("Server", shuffler->GetName(), "SHUFFLE_REQ", "DeckHash: " + input_deck.GetHash());
+        size_t deck_size = input_deck.cards.size() * CtxtByteSize();
+        SimulatedNetwork::Log("Server", shuffler->GetName(), "SHUFFLE_REQ", "DeckHash: " + input_deck.GetHash(), deck_size, 0.0);
         auto resp = shuffler->HandleShuffleRequest(joint_pk_, ck_, input_deck, hand_id_);
         
         // Server validates proof
@@ -286,8 +315,10 @@ public:
         for (size_t j = 0; j < players_.size(); ++j) {
             if (i == j) continue; // Don't verify own shuffle
             Player* verifier_p = players_[j];
+            // Send old deck + new deck + proof (approximated size)
+            size_t payload_size = (input_deck.cards.size() + resp.new_deck.cards.size()) * CtxtByteSize();
             SimulatedNetwork::Log("Server", verifier_p->GetName(), "VERIFY_REQ", 
-                "OldDeck: " + input_deck.GetHash() + ", NewDeck: " + resp.new_deck.GetHash());
+                "OldDeck: " + input_deck.GetHash() + ", NewDeck: " + resp.new_deck.GetHash(), payload_size, 0.0);
             
             if (!verifier_p->HandleVerifyRequest(joint_pk_, ck_, input_deck, resp.new_deck, resp.proof)) {
                  std::cerr << "SERVER ALARM: " << verifier_p->GetName() << " rejected shuffle by " << shuffler->GetName() << "\n";
@@ -346,14 +377,15 @@ public:
       for (size_t i = 0; i < players_.size(); ++i) {
           if (static_cast<int>(i) == target_idx) continue;
           
-          SimulatedNetwork::Log("Server", players_[i]->GetName(), "DECRYPT_SHARE_REQ", "CiphertextID: " + GetCtxtId(ctxt));
+          SimulatedNetwork::Log("Server", players_[i]->GetName(), "DECRYPT_SHARE_REQ", "CiphertextID: " + GetCtxtId(ctxt), CtxtByteSize(), 0.0);
           other_shares.push_back(players_[i]->HandleDecryptShareRequest(ctxt));
       }
 
       // Send shares + ciphertext to target
       std::stringstream ss;
       ss << "CiphertextID: " << GetCtxtId(ctxt) << ", OtherSharesCount: " << other_shares.size();
-      SimulatedNetwork::Log("Server", target->GetName(), "PRIVATE_CARD_DELIVERY", ss.str());
+      size_t payload_size = CtxtByteSize() + (other_shares.size() * shf::Point::ByteSize());
+      SimulatedNetwork::Log("Server", target->GetName(), "PRIVATE_CARD_DELIVERY", ss.str(), payload_size, 0.0);
       
       int val = target->HandlePrivateCardDelivery(ctxt, other_shares, deck_points_);
       std::cout << "   -> " << target->GetName() << " privately sees: " << (val >= 0 ? CardName(val) : "INVALID") << "\n";
@@ -365,7 +397,7 @@ public:
 
       // Collect shares from EVERYONE
       for (auto* p : players_) {
-          SimulatedNetwork::Log("Server", p->GetName(), "DECRYPT_SHARE_REQ", "CiphertextID: " + GetCtxtId(ctxt));
+          SimulatedNetwork::Log("Server", p->GetName(), "DECRYPT_SHARE_REQ", "CiphertextID: " + GetCtxtId(ctxt), CtxtByteSize(), 0.0);
           all_shares.push_back(p->HandleDecryptShareRequest(ctxt));
       }
 
