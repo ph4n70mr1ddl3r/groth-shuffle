@@ -38,7 +38,7 @@ include( CTest )
 include( Catch )
 add_executable( ${TEST_EXEC} ${SOURCE_FILES} ${TEST_SOURCE_FILES} )
 target_link_libraries( ${TEST_EXEC}
-  Catch2::Catch2
+  Catch2::Catch2WithMain
   ${RELIC_LIB}
   gmp
   pthread )
