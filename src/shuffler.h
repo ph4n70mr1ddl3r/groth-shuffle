@@ -79,6 +79,6 @@ class Shuffler {
   Prg m_prg;
 };
 
-}  // namespace mh
+}  // namespace shf
 
 #endif  // SHF_SHUFFLER_H

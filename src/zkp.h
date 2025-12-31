@@ -192,6 +192,6 @@ MultiExpP CreateProof(const CommitKey& ck, const PublicKey& pk, Hash& hash,
 bool VerifyProof(const CommitKey& ck, const PublicKey& pk, Hash& hash,
                  const MultiExpS& statement, const MultiExpP& proof);
 
-}  // namespace mh
+}  // namespace shf
 
 #endif  // SHF_ZKP_H

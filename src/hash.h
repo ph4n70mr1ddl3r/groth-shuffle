@@ -38,6 +38,6 @@ class Hash {
 
 Scalar ScalarFromHash(const Hash& hash);
 
-}  // namespace mh
+}  // namespace shf
 
 #endif  // SHF_HASH_H

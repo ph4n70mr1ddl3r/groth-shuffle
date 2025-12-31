@@ -74,9 +74,9 @@ bool shf::VerifyProof(const shf::DLogEqS& statement, shf::Hash& hash,
 }
 
 // create a vector and reserve a size
-#define SCALAR_VECTOR(_name, _size) \
-  std::vector<shf::Scalar> _name;    \
-  _name.reserve(_size);
+#define SCALAR_VECTOR(_name_, _size_) \
+  std::vector<shf::Scalar> _name_;    \
+  _name_.reserve(_size_);
 
 static inline shf::Scalar ProductChallenge(shf::Hash& hash, const shf::Point& C0,
                                           const shf::Point& C1,

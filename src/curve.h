@@ -33,10 +33,10 @@ class Scalar {
   ~Scalar();
 
   Scalar(const Scalar& other);
-  Scalar(Scalar&& other);
+  Scalar(Scalar&& other) noexcept;
 
   Scalar& operator=(const Scalar& other);
-  Scalar& operator=(Scalar&& other);
+  Scalar& operator=(Scalar&& other) noexcept;
 
   bool IsZero() const;
 
@@ -73,10 +73,10 @@ class Point {
   ~Point();
 
   Point(const Point& other);
-  Point(Point&& other);
+  Point(Point&& other) noexcept;
 
   Point& operator=(const Point& other);
-  Point& operator=(Point&& other);
+  Point& operator=(Point&& other) noexcept;
 
   bool IsInfinity() const;
 
@@ -102,5 +102,5 @@ class Point {
   ec_t m_internal;
 };
 
-}  // namespace mh
+}  // namespace shf
 #endif  // SHF_CURVE_H

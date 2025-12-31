@@ -1,7 +1,17 @@
 #include "shuffler.h"
 
+#include <cstring>
 #include <iostream>
 #include <numeric>
+
+namespace {
+
+inline void SecureClear(void* ptr, std::size_t size) {
+  volatile unsigned char* p = static_cast<volatile unsigned char*>(ptr);
+  for (std::size_t i = 0; i < size; ++i) p[i] = 0;
+}
+
+}  // namespace
 
 shf::Permutation shf::CreatePermutation(std::size_t size, shf::Prg& prg) {
   if (!size) return Permutation();
@@ -41,11 +51,11 @@ static inline std::vector<shf::Scalar> ExpSuccessive(const shf::Scalar& x,
   return values;
 }
 
-#define TYPED_VECTOR(_typ, _name, _size) \
-  std::vector<_typ> _name;               \
-  _name.reserve(_size);
+#define TYPED_VECTOR(_type_, _name_, _size_) \
+  std::vector<_type_> _name_;               \
+  _name_.reserve(_size_);
 
-#define SCALAR_VECTOR(_name, _size) TYPED_VECTOR(shf::Scalar, _name, _size)
+#define SCALAR_VECTOR(_name_, _size_) TYPED_VECTOR(shf::Scalar, _name_, _size_)
 
 static inline shf::Ctxt Randomize(const shf::PublicKey& pk, const shf::Ctxt& E,
                                  const shf::Scalar& r) {
@@ -81,11 +91,11 @@ static inline shf::Scalar ShuffleChallenge1(shf::Hash& hash,
   return shf::ScalarFromHash(hash);
 }
 
-#define RANDOM_SCALAR_VECTOR(_name, _size)            \
+#define RANDOM_SCALAR_VECTOR(_name_, _size_)            \
   do {                                                \
-    _name.reserve(_size);                             \
-    for (std::size_t __i = 0; __i < _size; ++__i)     \
-      _name.emplace_back(shf::Scalar::CreateRandom()); \
+    _name_.reserve(_size_);                             \
+    for (std::size_t __i = 0; __i < _size_; ++__i)     \
+      _name_.emplace_back(shf::Scalar::CreateRandom()); \
   } while (0)
 
 static inline shf::Scalar ShuffleChallenge2(shf::Hash& hash, const shf::Scalar& c,
@@ -101,7 +111,9 @@ static inline shf::Scalar ShuffleChallenge3(shf::Hash& hash,
 }
 
 shf::ShuffleP shf::Shuffler::Shuffle(const std::vector<shf::Ctxt>& Es,
-                                   shf::Hash& hash) {
+                                    shf::Hash& hash) {
+  if (Es.empty()) throw std::invalid_argument("ciphertexts cannot be empty");
+
   const std::size_t n = Es.size();
 
   // permute and randomize ciphertexts
@@ -152,7 +164,10 @@ static inline shf::Point CommitConstantNoRandomness(const shf::CommitKey& ck,
 }
 
 bool shf::Shuffler::VerifyShuffle(const std::vector<shf::Ctxt>& ctxts,
-                                 const shf::ShuffleP& proof, shf::Hash& hash) {
+                                  const shf::ShuffleP& proof, shf::Hash& hash) {
+  if (ctxts.empty()) throw std::invalid_argument("ciphertexts cannot be empty");
+  if (ctxts.size() != proof.permuted.size()) return false;
+
   const Scalar x = ShuffleChallenge1(hash, ctxts, proof.permuted, proof.Ca);
   const Scalar y = ShuffleChallenge2(hash, x, proof.Cb);
   const Scalar z = ShuffleChallenge3(hash, y);

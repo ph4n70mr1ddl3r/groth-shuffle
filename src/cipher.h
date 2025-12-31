@@ -67,6 +67,6 @@ Ctxt Add(const Ctxt& E0, const Ctxt& E1);
  */
 Ctxt Dot(const std::vector<shf::Scalar>& as, const std::vector<Ctxt>& Es);
 
-}  // namespace mh
+}  // namespace shf
 
 #endif  // SHF_CIPHER_H

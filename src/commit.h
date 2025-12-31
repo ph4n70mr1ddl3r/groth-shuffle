@@ -30,6 +30,6 @@ Point Commit(const CommitKey& ck, const Scalar& r,
 bool CheckCommitment(const CommitKey& ck, const Point& comm, const Scalar& r,
                      const std::vector<Scalar>& m);
 
-}  // namespace mh
+}  // namespace shf
 
 #endif  // SHF_COMMIT_H

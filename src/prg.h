@@ -40,6 +40,6 @@ class Prg {
   __m128i m_state[11];
 };
 
-}  // namespace mh
+}  // namespace shf
 
 #endif  // SHF_PRG_H

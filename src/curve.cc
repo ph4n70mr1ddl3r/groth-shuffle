@@ -58,9 +58,9 @@ shf::Point::Point(const shf::Point& other) {
   ec_copy(m_internal, other.m_internal);
 }
 
-shf::Point::Point(shf::Point&& other) {
-  ec_new(m_internal);
-  ec_copy(m_internal, other.m_internal);
+shf::Point::Point(shf::Point&& other) noexcept {
+  ec_set_infty(m_internal);
+  ec_swap(m_internal, other.m_internal);
 }
 
 shf::Point& shf::Point::operator=(const shf::Point& other) {
@@ -68,8 +68,8 @@ shf::Point& shf::Point::operator=(const shf::Point& other) {
   return *this;
 }
 
-shf::Point& shf::Point::operator=(shf::Point&& other) {
-  ec_copy(m_internal, other.m_internal);
+shf::Point& shf::Point::operator=(shf::Point&& other) noexcept {
+  ec_swap(m_internal, other.m_internal);
   return *this;
 }
 
@@ -128,18 +128,20 @@ shf::Scalar::Scalar(const shf::Scalar& other) {
   bn_copy(m_internal, other.m_internal);
 }
 
-shf::Scalar::Scalar(shf::Scalar&& other) {
-  bn_new(m_internal);
-  bn_copy(m_internal, other.m_internal);
+shf::Scalar::Scalar(shf::Scalar&& other) noexcept {
+  bn_zero(m_internal);
+  bn_swap(m_internal, other.m_internal);
 }
 
 shf::Scalar& shf::Scalar::operator=(const shf::Scalar& other) {
-  bn_copy(m_internal, other.m_internal);
+  if (this != &other) {
+    bn_copy(m_internal, other.m_internal);
+  }
   return *this;
 }
 
-shf::Scalar& shf::Scalar::operator=(shf::Scalar&& other) {
-  bn_copy(m_internal, other.m_internal);
+shf::Scalar& shf::Scalar::operator=(shf::Scalar&& other) noexcept {
+  bn_swap(m_internal, other.m_internal);
   return *this;
 }
 
