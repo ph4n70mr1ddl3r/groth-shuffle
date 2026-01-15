@@ -97,12 +97,14 @@ shf::ProductP shf::CreateProof(const shf::CommitKey& ck, shf::Hash& hash,
   SCALAR_VECTOR(bs, n);
   SCALAR_VECTOR(es, n);
 
-  bs.emplace_back(w0[0]);
   for (std::size_t i = 0; i < n; ++i) {
     ds.emplace_back(Scalar::CreateRandom());
     es.emplace_back(Scalar::CreateRandom());
-    if (i == 0) continue;
-    bs.emplace_back(w0[i] * bs[i - 1]);
+    if (i == 0) {
+      bs.emplace_back(w0[0]);
+    } else {
+      bs.emplace_back(w0[i] * bs[i - 1]);
+    }
   }
   es[0] = ds[0];
   es[n - 1] = Scalar();

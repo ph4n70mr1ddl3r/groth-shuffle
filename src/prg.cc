@@ -66,7 +66,7 @@ void shf::Prg::Fill(uint8_t* dest, std::size_t n) {
 
   std::size_t nblocks = n / BlockSize();
 
-  if (nblocks % BlockSize()) nblocks++;
+  if (n % BlockSize()) nblocks++;
 
   __m128i mask = CreateMask(m_counter);
   uint8_t* out = new uint8_t[nblocks * BlockSize()];

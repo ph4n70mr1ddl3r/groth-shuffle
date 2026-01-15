@@ -59,7 +59,6 @@ shf::Point::Point(const shf::Point& other) {
 }
 
 shf::Point::Point(shf::Point&& other) noexcept {
-  ec_set_infty(m_internal);
   ec_swap(m_internal, other.m_internal);
 }
 
@@ -129,7 +128,6 @@ shf::Scalar::Scalar(const shf::Scalar& other) {
 }
 
 shf::Scalar::Scalar(shf::Scalar&& other) noexcept {
-  bn_zero(m_internal);
   bn_swap(m_internal, other.m_internal);
 }
 

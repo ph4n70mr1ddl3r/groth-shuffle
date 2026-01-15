@@ -14,8 +14,9 @@ shf::CommitKey shf::CreateCommitKey(const std::size_t size) {
 }
 
 shf::Point shf::Commit(const shf::CommitKey& ck, const shf::Scalar& r,
-                     const std::vector<shf::Scalar>& m) {
+                      const std::vector<shf::Scalar>& m) {
   const std::size_t n = m.size();
+  if (n != ck.G.size()) throw std::invalid_argument("message size mismatch");
   Point C;
   for (std::size_t i = 0; i < n; ++i) C += m[i] * ck.G[i];
   return C + r * ck.H;

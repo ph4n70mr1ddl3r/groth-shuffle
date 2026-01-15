@@ -199,8 +199,8 @@ private:
     TimingResults timing;
     
 public:
-    PokerServerSimulation() : alice("Alice", reinterpret_cast<const uint8_t*>("alice12345678901")), 
-                              bob("Bob", reinterpret_cast<const uint8_t*>("bob123456789012")) {
+    PokerServerSimulation() : alice("Alice", reinterpret_cast<const uint8_t*>("alice12345678901bob")),
+                              bob("Bob", reinterpret_cast<const uint8_t*>("bob12345678901234a")) {
         server.SetKeys(alice, bob);
         server.InitializeDeck();
     }
