@@ -1,6 +1,10 @@
 #include "prg.h"
 
+#include <cstdlib>
 #include <cstring>
+#include <cstdio>
+
+#include "shuffler.h"
 
 /* https://github.com/sebastien-riou/aes-brute-force */
 
@@ -50,7 +54,20 @@ inline static void aes128_enc(__m128i* key_schedule, uint8_t* pt, uint8_t* ct) {
   _mm_storeu_si128((__m128i*)ct, m);
 }
 
-shf::Prg::Prg() { Init(); }
+shf::Prg::Prg() {
+  std::uint8_t seed[SeedSize()];
+  FILE* urandom = std::fopen("/dev/urandom", "rb");
+  if (urandom) {
+    std::fread(seed, 1, SeedSize(), urandom);
+    std::fclose(urandom);
+  } else {
+    for (std::size_t i = 0; i < SeedSize(); ++i) {
+      seed[i] = static_cast<std::uint8_t>(std::rand() % 256);
+    }
+  }
+  std::memcpy(m_seed, seed, SeedSize());
+  Init();
+}
 
 shf::Prg::Prg(const uint8_t* seed) {
   std::memcpy(m_seed, seed, SeedSize());

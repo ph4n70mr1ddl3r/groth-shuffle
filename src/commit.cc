@@ -7,7 +7,8 @@ shf::CommitKey shf::CreateCommitKey(const std::size_t size) {
 
   CommitKey ck;
   ck.G.reserve(size);
-  ck.H = Point::CreateRandom();
+  const Scalar h_scalar = Scalar::CreateRandom();
+  ck.H = h_scalar * Point::Generator();
   for (std::size_t i = 0; i < size; ++i)
     ck.G.emplace_back(Point::CreateRandom());
   return ck;
