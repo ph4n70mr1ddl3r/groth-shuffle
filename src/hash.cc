@@ -105,9 +105,10 @@ shf::Hash& shf::Hash::Update(const uint8_t* bytes, std::size_t nbytes) {
 }
 
 shf::Hash& shf::Hash::Update(const shf::Point& point) {
-  uint8_t data[Point::ByteSize()];
+  constexpr auto n = Point::ByteSize();
+  uint8_t data[n];
   point.Write(data);
-  Update(data, Point::ByteSize());
+  Update(data, n);
   return *this;
 }
 

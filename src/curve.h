@@ -67,7 +67,7 @@ class Point {
   static Point CreateRandom();
   static Point Read(const uint8_t* bytes);
 
-  static std::size_t ByteSize() { return 2 + RLC_FP_BYTES; };
+  static constexpr std::size_t ByteSize() { return 2 + RLC_FP_BYTES; };
 
   Point();
   ~Point();

@@ -18,14 +18,16 @@ shf::Permutation shf::CreatePermutation(std::size_t size, shf::Prg& prg) {
 
   Permutation p(size);
   std::iota(p.begin(), p.end(), 0);
+
   std::vector<std::size_t> r(size);
   prg.Fill(r);
 
-  // Fisher-Yates
-  std::size_t c = 0;
-  for (int i = size - 1; i >= 0; i--) {
-    std::size_t j = r[c++] % (i + 1);
-    std::swap(p[i], p[j]);
+  for (std::ptrdiff_t i = static_cast<std::ptrdiff_t>(size), c = 0; i > 0; --i, ++c) {
+    std::ptrdiff_t r_c = static_cast<std::ptrdiff_t>(r[c]);
+    std::ptrdiff_t j_signed = r_c % i;
+    if (j_signed < 0) j_signed += i;
+    std::size_t j = static_cast<std::size_t>(j_signed);
+    std::swap(p[i - 1], p[j]);
   }
 
   return p;

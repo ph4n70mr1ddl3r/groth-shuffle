@@ -59,16 +59,20 @@ shf::Point::Point(const shf::Point& other) {
 }
 
 shf::Point::Point(shf::Point&& other) noexcept {
-  ec_swap(m_internal, other.m_internal);
+  ec_new(m_internal);
+  ec_copy(m_internal, other.m_internal);
 }
 
 shf::Point& shf::Point::operator=(const shf::Point& other) {
-  ec_copy(m_internal, other.m_internal);
+  if (this != &other) {
+    ec_copy(m_internal, other.m_internal);
+  }
   return *this;
 }
 
 shf::Point& shf::Point::operator=(shf::Point&& other) noexcept {
-  ec_swap(m_internal, other.m_internal);
+  ec_copy(m_internal, other.m_internal);
+  ec_set_infty(other.m_internal);
   return *this;
 }
 
@@ -128,7 +132,8 @@ shf::Scalar::Scalar(const shf::Scalar& other) {
 }
 
 shf::Scalar::Scalar(shf::Scalar&& other) noexcept {
-  bn_swap(m_internal, other.m_internal);
+  bn_new(m_internal);
+  bn_copy(m_internal, other.m_internal);
 }
 
 shf::Scalar& shf::Scalar::operator=(const shf::Scalar& other) {
@@ -139,7 +144,8 @@ shf::Scalar& shf::Scalar::operator=(const shf::Scalar& other) {
 }
 
 shf::Scalar& shf::Scalar::operator=(shf::Scalar&& other) noexcept {
-  bn_swap(m_internal, other.m_internal);
+  bn_copy(m_internal, other.m_internal);
+  bn_zero(other.m_internal);
   return *this;
 }
 
@@ -200,7 +206,7 @@ shf::Scalar shf::Scalar::CreateRandom() {
 
 shf::Scalar shf::Scalar::CreateFromInt(unsigned int v) {
   Scalar s;
-  bn_set_dig(s.m_internal, (dig_t)v);
+  bn_set_dig(s.m_internal, static_cast<dig_t>(v));
   return s;
 }
 
