@@ -1,6 +1,7 @@
 #ifndef SHF_PRG_H
 #define SHF_PRG_H
 
+#include <cstring>
 #include <wmmintrin.h>
 
 #include <cstdint>
@@ -26,8 +27,9 @@ class Prg {
     const auto data_size = sizeof(T) * n;
     uint8_t* data = new uint8_t[data_size];
     Fill(data, data_size);
-    T* ptr = reinterpret_cast<T*>(data);
-    for (std::size_t i = 0; i < n; ++i) to_fill[i] = *ptr++;
+    for (std::size_t i = 0; i < n; ++i) {
+      std::memcpy(&to_fill[i], data + i * sizeof(T), sizeof(T));
+    }
     delete[] data;
   }
 

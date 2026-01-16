@@ -1,20 +1,7 @@
 #include "shuffler.h"
 
-#include <cstring>
-#include <cstdlib>
 #include <numeric>
-
-#if defined(__linux__) || defined(__APPLE__) || defined(__unix__)
-#include <strings.h>
-#define secure_clear(ptr, size) explicit_bzero(ptr, size)
-#elif defined(_WIN32) || defined(_WIN64)
-#include <windows.h>
-#define secure_clear(ptr, size) SecureZeroMemory(ptr, size)
-#else
-#define secure_clear(ptr, size) \
-  volatile unsigned char* p = static_cast<volatile unsigned char*>(ptr); \
-  for (std::size_t i = 0; i < size; ++i) p[i] = 0
-#endif
+#include <stdexcept>
 
 namespace {
 
@@ -86,7 +73,6 @@ static inline std::vector<shf::Ctxt> Randomize(
     const std::vector<shf::Scalar>& rs) {
   const std::size_t n = Es.size();
   std::vector<shf::Ctxt> randomized = CreateReservedVector<shf::Ctxt>(n);
-  const shf::Point one = shf::Point();
   for (std::size_t i = 0; i < n; ++i) {
     randomized.emplace_back(Randomize(pk, Es[i], rs[i]));
   }
@@ -95,6 +81,9 @@ static inline std::vector<shf::Ctxt> Randomize(
 
 static inline shf::Scalar NegateInnerProd(const std::vector<shf::Scalar>& a,
                                          const std::vector<shf::Scalar>& b) {
+  if (a.size() != b.size()) {
+    throw std::invalid_argument("a and b must have the same size");
+  }
   shf::Scalar d;
   for (std::size_t i = 0; i < a.size(); i++) d += a[i] * b[i];
   return -d;

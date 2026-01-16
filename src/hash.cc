@@ -1,5 +1,6 @@
 #include "hash.h"
 
+#include <array>
 #include <cstring>
 #include <vector>
 
@@ -106,17 +107,17 @@ shf::Hash& shf::Hash::Update(const uint8_t* bytes, std::size_t nbytes) {
 
 shf::Hash& shf::Hash::Update(const shf::Point& point) {
   constexpr auto n = Point::ByteSize();
-  uint8_t data[n];
-  point.Write(data);
-  Update(data, n);
+  std::array<uint8_t, Point::ByteSize()> data;
+  point.Write(data.data());
+  Update(data.data(), n);
   return *this;
 }
 
 shf::Hash& shf::Hash::Update(const shf::Scalar& scalar) {
   constexpr auto n = Scalar::ByteSize();
-  uint8_t data[n];
-  scalar.Write(data);
-  Update(data, n);
+  std::array<uint8_t, Scalar::ByteSize()> data;
+  scalar.Write(data.data());
+  Update(data.data(), n);
   return *this;
 }
 

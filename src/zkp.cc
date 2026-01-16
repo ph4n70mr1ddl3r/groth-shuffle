@@ -143,10 +143,16 @@ shf::ProductP shf::CreateProof(const shf::CommitKey& ck, shf::Hash& hash,
 }
 
 bool shf::VerifyProof(const shf::CommitKey& ck, shf::Hash& hash,
-                     const shf::ProductS& statement, const shf::ProductP& proof) {
+                      const shf::ProductS& statement, const shf::ProductP& proof) {
   const auto C0 = proof.C0;
   const auto C1 = proof.C1;
   const auto C2 = proof.C2;
+
+  const auto as = proof.as;
+  const auto bs = proof.bs;
+  if (as.size() < 3 || bs.size() < 3) {
+    return false;
+  }
 
   const auto c = ProductChallenge(hash, C0, C1, C2);
 
@@ -156,8 +162,6 @@ bool shf::VerifyProof(const shf::CommitKey& ck, shf::Hash& hash,
 
   Point rhs0, rhs1;
   std::size_t i = 0;
-  const auto as = proof.as;
-  const auto bs = proof.bs;
   const auto b = statement.b;
   for (; i < as.size() - 2; ++i) {
     const auto Gi = ck.G[i];
