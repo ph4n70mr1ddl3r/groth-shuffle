@@ -45,7 +45,7 @@ shf::Permutation shf::CreatePermutation(std::size_t size, shf::Prg& prg) {
   std::vector<std::size_t> r(size);
   prg.Fill(r);
 
-  for (std::ptrdiff_t i = static_cast<std::ptrdiff_t>(size), c = 0; i > 0; --i, ++c) {
+  for (std::ptrdiff_t i = static_cast<std::ptrdiff_t>(size), c = 0; i > 1; --i, ++c) {
     std::ptrdiff_t r_c = static_cast<std::ptrdiff_t>(r[c]);
     std::ptrdiff_t j_signed = r_c % i;
     if (j_signed < 0) j_signed += i;
