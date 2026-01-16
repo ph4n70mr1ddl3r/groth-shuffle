@@ -24,12 +24,13 @@ using namespace std::chrono;
 static void GenerateRandomSeed(uint8_t* seed, std::size_t size) {
     std::FILE* urandom = std::fopen("/dev/urandom", "rb");
     if (urandom) {
-        std::fread(seed, 1, size, urandom);
+        if (std::fread(seed, 1, size, urandom) != size) {
+            std::fclose(urandom);
+            throw std::runtime_error("Failed to read random seed");
+        }
         std::fclose(urandom);
     } else {
-        for (std::size_t i = 0; i < size; ++i) {
-            seed[i] = static_cast<uint8_t>(std::rand() % 256);
-        }
+        throw std::runtime_error("Failed to open /dev/urandom");
     }
 }
 

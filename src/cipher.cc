@@ -1,5 +1,7 @@
 #include "cipher.h"
 
+#include <stdexcept>
+
 shf::SecretKey shf::CreateSecretKey() { return shf::Scalar::CreateRandom(); }
 
 shf::PublicKey shf::CreatePublicKey(const shf::SecretKey& sk) {
@@ -29,7 +31,13 @@ shf::Ctxt shf::Multiply(const shf::Scalar& s, const shf::Ctxt& E) {
 }
 
 shf::Ctxt shf::Dot(const std::vector<shf::Scalar>& as,
-                 const std::vector<shf::Ctxt>& Es) {
+                  const std::vector<shf::Ctxt>& Es) {
+  if (as.size() != Es.size()) {
+    throw std::invalid_argument("as and Es must have the same size");
+  }
+  if (as.empty()) {
+    throw std::invalid_argument("as and Es cannot be empty");
+  }
   shf::Ctxt E = shf::Multiply(as[0], Es[0]);
   const auto n = as.size();
   for (std::size_t i = 1; i < n; ++i)

@@ -1,14 +1,37 @@
 #include "shuffler.h"
 
 #include <cstring>
-#include <iostream>
+#include <cstdlib>
 #include <numeric>
+
+#if defined(__linux__) || defined(__APPLE__) || defined(__unix__)
+#include <strings.h>
+#define secure_clear(ptr, size) explicit_bzero(ptr, size)
+#elif defined(_WIN32) || defined(_WIN64)
+#include <windows.h>
+#define secure_clear(ptr, size) SecureZeroMemory(ptr, size)
+#else
+#define secure_clear(ptr, size) \
+  volatile unsigned char* p = static_cast<volatile unsigned char*>(ptr); \
+  for (std::size_t i = 0; i < size; ++i) p[i] = 0
+#endif
 
 namespace {
 
-inline void SecureClear(void* ptr, std::size_t size) {
-  volatile unsigned char* p = static_cast<volatile unsigned char*>(ptr);
-  for (std::size_t i = 0; i < size; ++i) p[i] = 0;
+template<typename T>
+std::vector<T> CreateReservedVector(std::size_t size) {
+  std::vector<T> v;
+  v.reserve(size);
+  return v;
+}
+
+inline std::vector<shf::Scalar> CreateRandomScalarVector(std::size_t size) {
+  std::vector<shf::Scalar> v;
+  v.reserve(size);
+  for (std::size_t i = 0; i < size; ++i) {
+    v.emplace_back(shf::Scalar::CreateRandom());
+  }
+  return v;
 }
 
 }  // namespace
@@ -53,12 +76,6 @@ static inline std::vector<shf::Scalar> ExpSuccessive(const shf::Scalar& x,
   return values;
 }
 
-#define TYPED_VECTOR(_type_, _name_, _size_) \
-  std::vector<_type_> _name_;               \
-  _name_.reserve(_size_);
-
-#define SCALAR_VECTOR(_name_, _size_) TYPED_VECTOR(shf::Scalar, _name_, _size_)
-
 static inline shf::Ctxt Randomize(const shf::PublicKey& pk, const shf::Ctxt& E,
                                  const shf::Scalar& r) {
   return shf::Add(shf::Encrypt(pk, shf::Point(), r), E);
@@ -68,7 +85,7 @@ static inline std::vector<shf::Ctxt> Randomize(
     const shf::PublicKey& pk, const std::vector<shf::Ctxt>& Es,
     const std::vector<shf::Scalar>& rs) {
   const std::size_t n = Es.size();
-  TYPED_VECTOR(shf::Ctxt, randomized, n);
+  std::vector<shf::Ctxt> randomized = CreateReservedVector<shf::Ctxt>(n);
   const shf::Point one = shf::Point();
   for (std::size_t i = 0; i < n; ++i) {
     randomized.emplace_back(Randomize(pk, Es[i], rs[i]));
@@ -93,13 +110,6 @@ static inline shf::Scalar ShuffleChallenge1(shf::Hash& hash,
   return shf::ScalarFromHash(hash);
 }
 
-#define RANDOM_SCALAR_VECTOR(_name_, _size_)            \
-  do {                                                \
-    _name_.reserve(_size_);                             \
-    for (std::size_t __i = 0; __i < _size_; ++__i)     \
-      _name_.emplace_back(shf::Scalar::CreateRandom()); \
-  } while (0)
-
 static inline shf::Scalar ShuffleChallenge2(shf::Hash& hash, const shf::Scalar& c,
                                            const shf::Point& C) {
   hash.Update(c).Update(C);
@@ -120,8 +130,7 @@ shf::ShuffleP shf::Shuffler::Shuffle(const std::vector<shf::Ctxt>& Es,
 
   // permute and randomize ciphertexts
   const Permutation p = CreatePermutation(n, m_prg);
-  std::vector<Scalar> rho;
-  RANDOM_SCALAR_VECTOR(rho, n);
+  const std::vector<Scalar> rho = CreateRandomScalarVector(n);
   const std::vector<Ctxt> pEs = Randomize(m_pk, Permute(Es, p), rho);
 
   // Ca = commit(ck ; pi(1) ... pi(n) ; r)
@@ -138,7 +147,7 @@ shf::ShuffleP shf::Shuffler::Shuffle(const std::vector<shf::Ctxt>& Es,
   const Scalar y = ShuffleChallenge2(hash, x, Cb.C);
   const Scalar z = ShuffleChallenge3(hash, y);
 
-  SCALAR_VECTOR(dz, n);
+  std::vector<Scalar> dz = CreateReservedVector<Scalar>(n);
   dz.emplace_back(y * a[0] + b[0] - z);
   Scalar prod = dz[0];
   for (std::size_t i = 1; i < n; ++i) {
@@ -179,7 +188,7 @@ bool shf::Shuffler::VerifyShuffle(const std::vector<shf::Ctxt>& ctxts,
   const Point CdCz = Cd + Cz;
 
   const std::size_t n = ctxts.size();
-  SCALAR_VECTOR(xexp, n);
+  std::vector<Scalar> xexp = CreateReservedVector<Scalar>(n);
   xexp.emplace_back(x);
   Scalar prod = x - z;
   for (std::size_t i = 1; i < n; ++i) {

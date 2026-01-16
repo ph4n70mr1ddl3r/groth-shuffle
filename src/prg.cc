@@ -3,6 +3,19 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
+#include <stdexcept>
+
+#if defined(__linux__) || defined(__APPLE__) || defined(__unix__)
+#include <strings.h>
+#define secure_clear(ptr, size) explicit_bzero(ptr, size)
+#elif defined(_WIN32) || defined(_WIN64)
+#include <windows.h>
+#define secure_clear(ptr, size) SecureZeroMemory(ptr, size)
+#else
+#define secure_clear(ptr, size) \
+  volatile unsigned char* p = static_cast<volatile unsigned char*>(ptr); \
+  for (std::size_t i = 0; i < size; ++i) p[i] = 0
+#endif
 
 #include "shuffler.h"
 
@@ -57,15 +70,16 @@ inline static void aes128_enc(__m128i* key_schedule, uint8_t* pt, uint8_t* ct) {
 shf::Prg::Prg() {
   std::uint8_t seed[SeedSize()];
   FILE* urandom = std::fopen("/dev/urandom", "rb");
-  if (urandom) {
-    std::fread(seed, 1, SeedSize(), urandom);
-    std::fclose(urandom);
-  } else {
-    for (std::size_t i = 0; i < SeedSize(); ++i) {
-      seed[i] = static_cast<std::uint8_t>(std::rand() % 256);
-    }
+  if (!urandom) {
+    throw std::runtime_error("Failed to open /dev/urandom for PRG seed");
+  }
+  std::size_t bytes_read = std::fread(seed, 1, SeedSize(), urandom);
+  std::fclose(urandom);
+  if (bytes_read != SeedSize()) {
+    throw std::runtime_error("Failed to read sufficient random bytes from /dev/urandom");
   }
   std::memcpy(m_seed, seed, SeedSize());
+  secure_clear(seed, SeedSize());
   Init();
 }
 
