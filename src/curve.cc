@@ -2,11 +2,14 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <mutex>
 
+static std::mutex k_init_mutex;
 static int k_relic_initialized = 0;
 static bn_t k_curve_order;
 
 void shf::CurveInit() {
+  std::lock_guard<std::mutex> lock(k_init_mutex);
   if (k_relic_initialized) {
     return;
   }

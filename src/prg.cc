@@ -86,8 +86,8 @@ void shf::Prg::Fill(uint8_t* dest, std::size_t n) {
   if (n % BlockSize()) nblocks++;
 
   __m128i mask = CreateMask(m_counter);
-  uint8_t* out = new uint8_t[nblocks * BlockSize()];
-  uint8_t* p = out;
+  std::vector<uint8_t> out(nblocks * BlockSize());
+  uint8_t* p = out.data();
 
   for (std::size_t i = 0; i < nblocks; ++i) {
     aes128_enc(m_state, (uint8_t*)(&mask), p);
@@ -96,10 +96,15 @@ void shf::Prg::Fill(uint8_t* dest, std::size_t n) {
     p += BlockSize();
   }
 
-  std::memcpy(dest, out, n);
-  delete[] out;
+  std::memcpy(dest, out.data(), n);
 }
 
 void shf::Prg::Update() { m_counter++; }
 
-void shf::Prg::Init() { aes128_load_key(m_seed, m_state); }
+void shf::Prg::Init() {
+#if defined(__AES__) || defined(_MSC_VER)
+  aes128_load_key(m_seed, m_state);
+#else
+  throw std::runtime_error("AES-NI not supported on this platform");
+#endif
+}

@@ -26,3 +26,25 @@ include_directories(thirdparty)
 
 add_executable(bg12_poker_server bg12_poker_server.cc ${SOURCE_FILES})
 target_link_libraries(bg12_poker_server ${RELIC_LIB} gmp pthread)
+
+option(BUILD_TESTS "Build test suite" OFF)
+
+if(BUILD_TESTS)
+  include(FetchContent)
+  FetchContent_Declare(
+    catch2
+    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+    GIT_TAG v3.4.0
+  )
+  FetchContent_MakeAvailable(catch2)
+
+  add_executable(tests
+    test/test_shuffler.cc
+    test/test_zkp.cc
+    test/test_curve.cc
+    test/test_hash.cc
+    test/test_main.cc
+    ${SOURCE_FILES})
+  target_link_libraries(tests PRIVATE Catch2::Catch2WithMain ${RELIC_LIB} gmp pthread)
+  target_include_directories(tests PRIVATE test)
+endif()

@@ -9,16 +9,29 @@
 #include <chrono>
 #include <fstream>
 #include <algorithm>
+#include <cstdint>
 
+#include "prg.h"
 #include "curve.h"
 #include "cipher.h"
 #include "commit.h"
 #include "hash.h"
-#include "prg.h"
 #include "shuffler.h"
 #include "zkp.h"
 
 using namespace std::chrono;
+
+static void GenerateRandomSeed(uint8_t* seed, std::size_t size) {
+    std::FILE* urandom = std::fopen("/dev/urandom", "rb");
+    if (urandom) {
+        std::fread(seed, 1, size, urandom);
+        std::fclose(urandom);
+    } else {
+        for (std::size_t i = 0; i < size; ++i) {
+            seed[i] = static_cast<uint8_t>(std::rand() % 256);
+        }
+    }
+}
 
 struct Timer {
     std::string name;
@@ -78,7 +91,10 @@ struct Player {
     shf::Prg prg;
     shf::CommitKey ck;
     
-    Player(std::string n, const uint8_t* seed) : name(n), prg(seed) {
+    Player(std::string n) : name(n) {
+        uint8_t seed[shf::Prg::SeedSize()];
+        GenerateRandomSeed(seed, sizeof(seed));
+        prg = shf::Prg(seed);
         sk = shf::CreateSecretKey();
         pk = shf::CreatePublicKey(sk);
         ck = shf::CreateCommitKey(52);
@@ -199,8 +215,7 @@ private:
     TimingResults timing;
     
 public:
-    PokerServerSimulation() : alice("Alice", reinterpret_cast<const uint8_t*>("alice12345678901bob")),
-                              bob("Bob", reinterpret_cast<const uint8_t*>("bob12345678901234a")) {
+    PokerServerSimulation() : alice("Alice"), bob("Bob") {
         server.SetKeys(alice, bob);
         server.InitializeDeck();
     }

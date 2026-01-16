@@ -109,12 +109,17 @@ shf::ProductP shf::CreateProof(const shf::CommitKey& ck, shf::Hash& hash,
   es[0] = ds[0];
   es[n - 1] = Scalar();
 
-  SCALAR_VECTOR(sd, n - 1);
-  SCALAR_VECTOR(bd, n - 1);
+  SCALAR_VECTOR(sd, n);
+  SCALAR_VECTOR(bd, n);
 
-  for (std::size_t i = 0; i < n - 1; ++i) {
-    sd.emplace_back(-es[i] * ds[i + 1]);
-    bd.emplace_back(es[i + 1] - w0[i + 1] * es[i] - bs[i] * ds[i + 1]);
+  for (std::size_t i = 0; i < n; ++i) {
+    if (i < n - 1) {
+      sd.emplace_back(-es[i] * ds[i + 1]);
+      bd.emplace_back(es[i + 1] - w0[i + 1] * es[i] - bs[i] * ds[i + 1]);
+    } else {
+      sd.emplace_back(Scalar());
+      bd.emplace_back(Scalar());
+    }
   }
 
   const auto Cr0 = Commit(ck, ds);
