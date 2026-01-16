@@ -1,6 +1,6 @@
 #include "zkp.h"
 
-#include <iostream>
+#include <cstring>
 
 static inline shf::Scalar DLogChallenge(shf::Hash& hash, const shf::Point& p0,
                                        const shf::Point& p1,
@@ -74,9 +74,11 @@ bool shf::VerifyProof(const shf::DLogEqS& statement, shf::Hash& hash,
 }
 
 // create a vector and reserve a size
-#define SCALAR_VECTOR(_name_, _size_) \
-  std::vector<shf::Scalar> _name_;    \
-  _name_.reserve(_size_);
+static inline std::vector<shf::Scalar> CreateScalarVector(std::size_t size) {
+  std::vector<shf::Scalar> v;
+  v.reserve(size);
+  return v;
+}
 
 static inline shf::Scalar ProductChallenge(shf::Hash& hash, const shf::Point& C0,
                                           const shf::Point& C1,
@@ -93,9 +95,9 @@ shf::ProductP shf::CreateProof(const shf::CommitKey& ck, shf::Hash& hash,
   const auto C = statement.C;
   const auto b = statement.b;
 
-  SCALAR_VECTOR(ds, n);
-  SCALAR_VECTOR(bs, n);
-  SCALAR_VECTOR(es, n);
+  auto ds = CreateScalarVector(n);
+  auto bs = CreateScalarVector(n);
+  auto es = CreateScalarVector(n);
 
   for (std::size_t i = 0; i < n; ++i) {
     ds.emplace_back(Scalar::CreateRandom());
@@ -109,8 +111,8 @@ shf::ProductP shf::CreateProof(const shf::CommitKey& ck, shf::Hash& hash,
   es[0] = ds[0];
   es[n - 1] = Scalar();
 
-  SCALAR_VECTOR(sd, n);
-  SCALAR_VECTOR(bd, n);
+  auto sd = CreateScalarVector(n);
+  auto bd = CreateScalarVector(n);
 
   for (std::size_t i = 0; i < n; ++i) {
     if (i < n - 1) {
@@ -128,8 +130,8 @@ shf::ProductP shf::CreateProof(const shf::CommitKey& ck, shf::Hash& hash,
 
   const auto c = ProductChallenge(hash, Cr0.C, Cr1.C, Cr2.C);
 
-  SCALAR_VECTOR(aa, n);
-  SCALAR_VECTOR(bb, n);
+  auto aa = CreateScalarVector(n);
+  auto bb = CreateScalarVector(n);
 
   for (std::size_t i = 0; i < n; ++i) {
     aa.emplace_back(c * w0[i] + ds[i]);
@@ -187,9 +189,9 @@ static inline shf::CommitmentAndRandomness CommitOne(const shf::CommitKey& ck,
 
 static inline void HashStatement(shf::Hash& hash,
                                  const shf::MultiExpS& statement) {
-  const auto Es = statement.Es;
-  const auto E = statement.E;
-  const auto C = statement.C;
+  const auto& Es = statement.Es;
+  const auto& E = statement.E;
+  const auto& C = statement.C;
   hash.Update(E.U).Update(E.V).Update(C);
   for (const auto& ctxt : Es) hash.Update(ctxt.U).Update(ctxt.V);
 }
@@ -208,21 +210,21 @@ static inline std::vector<shf::Scalar> MulAndSum(
     const std::vector<shf::Scalar>& a, const std::vector<shf::Scalar>& b,
     const shf::Scalar& x) {
   const auto n = a.size();
-  SCALAR_VECTOR(c, n);
+  auto c = CreateScalarVector(n);
   for (std::size_t i = 0; i < n; ++i) c.emplace_back(a[i] + b[i] * x);
   return c;
 }
 
 shf::MultiExpP shf::CreateProof(const shf::CommitKey& ck, const shf::PublicKey& pk,
-                              shf::Hash& hash, const shf::MultiExpS& statement,
-                              const std::vector<shf::Scalar>& w0,
-                              const shf::Scalar& w1, const shf::Scalar& w2) {
+                               shf::Hash& hash, const shf::MultiExpS& statement,
+                               const std::vector<shf::Scalar>& w0,
+                               const shf::Scalar& w1, const shf::Scalar& w2) {
   const std::size_t n = w0.size();
   const std::vector<Ctxt> Es = statement.Es;
   const Ctxt E = statement.E;
   const Point C = statement.C;
 
-  SCALAR_VECTOR(a0, n);
+  auto a0 = CreateScalarVector(n);
   for (std::size_t i = 0; i < n; ++i) a0.emplace_back(Scalar::CreateRandom());
 
   const CommitmentAndRandomness Cr0 = Commit(ck, a0);

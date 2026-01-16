@@ -1,6 +1,5 @@
 #include "curve.h"
 
-#include <iostream>
 #include <stdexcept>
 #include <mutex>
 
@@ -29,6 +28,16 @@ void shf::CurveInit() {
   ec_curve_get_ord(k_curve_order);
 
   k_relic_initialized = 1;
+}
+
+void shf::CurveCleanup() {
+  std::lock_guard<std::mutex> lock(k_init_mutex);
+  if (!k_relic_initialized) {
+    return;
+  }
+  bn_free(k_curve_order);
+  core_clean();
+  k_relic_initialized = 0;
 }
 
 shf::Point shf::Point::Generator() {
@@ -75,7 +84,10 @@ shf::Point& shf::Point::operator=(const shf::Point& other) {
 }
 
 shf::Point& shf::Point::operator=(shf::Point&& other) noexcept {
-  std::swap(m_internal, other.m_internal);
+  ec_free(m_internal);
+  ec_new(m_internal);
+  ec_copy(m_internal, other.m_internal);
+  ec_set_infty(other.m_internal);
   return *this;
 }
 
@@ -148,7 +160,10 @@ shf::Scalar& shf::Scalar::operator=(const shf::Scalar& other) {
 }
 
 shf::Scalar& shf::Scalar::operator=(shf::Scalar&& other) noexcept {
-  std::swap(m_internal, other.m_internal);
+  bn_free(m_internal);
+  bn_new(m_internal);
+  bn_copy(m_internal, other.m_internal);
+  bn_zero(other.m_internal);
   return *this;
 }
 

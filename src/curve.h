@@ -16,6 +16,11 @@ namespace shf {
  */
 void CurveInit();
 
+/**
+ * @brief Cleans up relic resources. Call when done using the library.
+ */
+void CurveCleanup();
+
 class Point;
 
 class Scalar {

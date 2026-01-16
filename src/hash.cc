@@ -122,14 +122,14 @@ shf::Hash& shf::Hash::Update(const shf::Scalar& scalar) {
 }
 
 shf::Digest shf::Hash::Finalize() {
-  uint64_t t = (uint64_t)(((uint64_t)(0x02 | (1 << 2))) << ((mByteIndex)*8));
+  uint64_t t = static_cast<uint64_t>((0x02 | (1 << 2)) << (mByteIndex * 8));
   mState[mWordIndex] ^= mSaved ^ t;
   mState[kCutoff - 1] ^= 0x8000000000000000ULL;
   keccakf(mState);
 
   for (std::size_t i = 0; i < kStateSize; ++i) {
-    const unsigned int t1 = (uint32_t)mState[i];
-    const unsigned int t2 = (uint32_t)((mState[i] >> 16) >> 16);
+    const unsigned int t1 = static_cast<uint32_t>(mState[i]);
+    const unsigned int t2 = static_cast<uint32_t>((mState[i] >> 16) >> 16);
     mStateBytes[i * 8 + 0] = (uint8_t)t1;
     mStateBytes[i * 8 + 1] = (uint8_t)(t1 >> 8);
     mStateBytes[i * 8 + 2] = (uint8_t)(t1 >> 16);
