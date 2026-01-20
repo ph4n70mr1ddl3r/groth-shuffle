@@ -19,6 +19,9 @@
 
 #include "shuffler.h"
 
+// Security note: This PRG implementation uses AES in counter mode with AES-NI
+// acceleration for high-performance cryptographically secure pseudorandom
+// generation. The implementation securely wipes sensitive data from memory.
 /* https://github.com/sebastien-riou/aes-brute-force */
 
 #define DO_ENC_BLOCK(m, k)              \

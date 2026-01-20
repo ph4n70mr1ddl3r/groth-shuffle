@@ -10,6 +10,7 @@
 #include <fstream>
 #include <algorithm>
 #include <cstdint>
+#include <array>
 
 #include "prg.h"
 #include "curve.h"
@@ -21,16 +22,24 @@
 
 using namespace std::chrono;
 
+static constexpr int DECK_SIZE = 52;
+static constexpr int CARDS_PER_SUIT = 13;
+static constexpr int NUM_SUITS = 4;
+static constexpr int TEXAS_HOLDEM_HOLE_CARDS = 2;
+static constexpr int TEXAS_HOLDEM_TOTAL_HOLE_CARDS = 4;
+
 static void GenerateRandomSeed(uint8_t* seed, std::size_t size) {
     std::FILE* urandom = std::fopen("/dev/urandom", "rb");
-    if (urandom) {
-        if (std::fread(seed, 1, size, urandom) != size) {
-            std::fclose(urandom);
-            throw std::runtime_error("Failed to read random seed");
-        }
-        std::fclose(urandom);
-    } else {
-        throw std::runtime_error("Failed to open /dev/urandom");
+    if (!urandom) {
+        throw std::runtime_error("Failed to open /dev/urandom for random seed generation");
+    }
+
+    const std::size_t bytes_read = std::fread(seed, 1, size, urandom);
+    std::fclose(urandom);
+
+    if (bytes_read != size) {
+        throw std::runtime_error("Failed to read sufficient random bytes from /dev/urandom: requested " +
+                                std::to_string(size) + " bytes, got " + std::to_string(bytes_read));
     }
 }
 
@@ -68,12 +77,9 @@ struct Card {
     }
     
     std::string ToString() const {
-        std::string suitStr;
-        if (suit == 0) suitStr = "♠";
-        else if (suit == 1) suitStr = "♥";
-        else if (suit == 2) suitStr = "♦";
-        else suitStr = "♣";
-        
+        static const std::array<std::string, NUM_SUITS> SUIT_SYMBOLS = {"♠", "♥", "♦", "♣"};
+        const std::string suitStr = SUIT_SYMBOLS[static_cast<size_t>(suit)];
+
         std::string rankStr;
         if (rank == 1) rankStr = "A";
         else if (rank == 11) rankStr = "J";
@@ -91,14 +97,21 @@ struct Player {
     shf::PublicKey pk;
     shf::Prg prg;
     shf::CommitKey ck;
-    
+
     Player(std::string n) : name(n) {
+        // Generate cryptographically secure random seed for PRG
+        // Note: Each player gets their own independent random seed
         uint8_t seed[shf::Prg::SeedSize()];
         GenerateRandomSeed(seed, sizeof(seed));
         prg = shf::Prg(seed);
+
+        // Generate ElGamal keypair for encryption/decryption
         sk = shf::CreateSecretKey();
         pk = shf::CreatePublicKey(sk);
-        ck = shf::CreateCommitKey(52);
+
+        // Create commitment key for zero-knowledge proofs
+        // Size 52 corresponds to maximum deck size
+        ck = shf::CreateCommitKey(DECK_SIZE);
     }
 };
 
@@ -118,7 +131,7 @@ struct Server {
     
     void InitializeDeck() {
         original_deck.clear();
-        for (int i = 0; i < 52; ++i) {
+        for (int i = 0; i < DECK_SIZE; ++i) {
             shf::Point p = shf::Point::CreateRandom();
             original_deck.push_back(Card::FromIndex(i, p));
         }
@@ -132,8 +145,8 @@ struct Server {
         std::cout << "  [" << player_name << " -> SERVER] Received " << deck.size() << " encrypted cards\n";
     }
     
-    Card FindCard(const shf::Point& p) {
-        for (int j = 0; j < 52; ++j) {
+    Card FindCard(const shf::Point& p) const {
+        for (int j = 0; j < DECK_SIZE; ++j) {
             if (p == original_deck[j].point) {
                 return original_deck[j];
             }
@@ -439,13 +452,13 @@ public:
         
         std::vector<Card> alice_hole;
         std::vector<Card> bob_hole;
-        
-        int deal_order[] = {0, 1, 2, 3};
+
+        static const std::array<int, TEXAS_HOLDEM_TOTAL_HOLE_CARDS> DEAL_ORDER = {0, 1, 2, 3};
         
         std::cout << "Dealing order: Alice, Bob, Alice, Bob\n\n";
         
-        for (int i = 0; i < 4; ++i) {
-            int pos = deal_order[i];
+        for (int i = 0; i < TEXAS_HOLDEM_TOTAL_HOLE_CARDS; ++i) {
+            int pos = DEAL_ORDER[i];
             
             std::cout << "--- Dealing position " << (pos + 1) << " ---\n";
             std::cout << "Server: Selects encrypted card at position " << pos << "\n";

@@ -19,7 +19,7 @@ shf::Ctxt shf::Encrypt(const shf::PublicKey& pk, const shf::Point& m) {
 }
 
 shf::Point shf::Decrypt(const shf::SecretKey& sk, const shf::Ctxt& ctxt) {
-  return ctxt.V - sk * ctxt.U;
+  return ctxt.V - (sk * ctxt.U);
 }
 
 shf::Ctxt shf::Add(const shf::Ctxt& E0, const shf::Ctxt& E1) {

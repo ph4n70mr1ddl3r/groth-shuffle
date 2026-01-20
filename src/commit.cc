@@ -3,23 +3,32 @@
 #include <stdexcept>
 
 shf::CommitKey shf::CreateCommitKey(const std::size_t size) {
-  if (size == 0) throw std::invalid_argument("cannot create a key of size 0");
+  if (size == 0) {
+    throw std::invalid_argument("Cannot create a commitment key of size 0");
+  }
 
   CommitKey ck;
   ck.G.reserve(size);
   const Scalar h_scalar = Scalar::CreateRandom();
   ck.H = h_scalar * Point::Generator();
-  for (std::size_t i = 0; i < size; ++i)
+  for (std::size_t i = 0; i < size; ++i) {
     ck.G.emplace_back(Point::CreateRandom());
+  }
   return ck;
 }
 
 shf::Point shf::Commit(const shf::CommitKey& ck, const shf::Scalar& r,
-                      const std::vector<shf::Scalar>& m) {
+                       const std::vector<shf::Scalar>& m) {
   const std::size_t n = m.size();
-  if (n != ck.G.size()) throw std::invalid_argument("message size mismatch");
+  if (n != ck.G.size()) {
+    throw std::invalid_argument("Message vector size (" + std::to_string(n) +
+                               ") does not match commitment key size (" +
+                               std::to_string(ck.G.size()) + ")");
+  }
   Point C;
-  for (std::size_t i = 0; i < n; ++i) C += m[i] * ck.G[i];
+  for (std::size_t i = 0; i < n; ++i) {
+    C += m[i] * ck.G[i];
+  }
   return C + r * ck.H;
 }
 

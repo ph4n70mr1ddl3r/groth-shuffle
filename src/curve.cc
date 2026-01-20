@@ -15,13 +15,13 @@ void shf::CurveInit() {
 
   core_init();
   if (err_get_code() != RLC_OK) {
-    throw std::runtime_error("relic core_init() failed");
+    throw std::runtime_error("Failed to initialize Relic cryptographic library core");
   }
 
   TRY { ec_param_set_any(); }
   CATCH_ANY {
     core_clean();
-    throw std::runtime_error("relic ec_param_set_any() failed");
+    throw std::runtime_error("Failed to set elliptic curve parameters in Relic library");
   }
 
   bn_new(k_curve_order);

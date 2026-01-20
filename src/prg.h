@@ -25,12 +25,11 @@ class Prg {
   void Fill(std::vector<T>& to_fill) {
     const auto n = to_fill.size();
     const auto data_size = sizeof(T) * n;
-    uint8_t* data = new uint8_t[data_size];
-    Fill(data, data_size);
+    std::vector<uint8_t> data(data_size);
+    Fill(data.data(), data_size);
     for (std::size_t i = 0; i < n; ++i) {
-      std::memcpy(&to_fill[i], data + i * sizeof(T), sizeof(T));
+      std::memcpy(&to_fill[i], data.data() + i * sizeof(T), sizeof(T));
     }
-    delete[] data;
   }
 
  private:
