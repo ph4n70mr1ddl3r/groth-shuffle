@@ -28,6 +28,11 @@ static constexpr int NUM_SUITS = 4;
 static constexpr int TEXAS_HOLDEM_HOLE_CARDS = 2;
 static constexpr int TEXAS_HOLDEM_TOTAL_HOLE_CARDS = 4;
 
+// Display constants
+static constexpr int PREVIEW_CARDS_COUNT = 5;
+static constexpr int TIMING_TABLE_WIDTH = 60;
+static constexpr int SECTION_SEPARATOR_WIDTH = 70;
+
 static void GenerateRandomSeed(uint8_t* seed, std::size_t size) {
     std::FILE* urandom = std::fopen("/dev/urandom", "rb");
     if (!urandom) {
@@ -175,9 +180,9 @@ struct TimingResults {
     std::vector<double> decrypt;
     
     void Print() {
-        std::cout << "\n" << std::string(60, '=') << "\n";
+        std::cout << "\n" << std::string(TIMING_TABLE_WIDTH, '=') << "\n";
         std::cout << "TIMING RESULTS\n";
-        std::cout << std::string(60, '=') << "\n\n";
+        std::cout << std::string(TIMING_TABLE_WIDTH, '=') << "\n\n";
         
         auto avg = [&](const std::vector<double>& v) -> double {
             if (v.empty()) return 0.0;
@@ -201,11 +206,11 @@ struct TimingResults {
                       << std::fixed << std::setprecision(2) << max_val << ") x" << count << "\n";
         };
         
-        std::cout << std::left << std::setw(35) << "Operation" 
+        std::cout << std::left << std::setw(35) << "Operation"
                   << std::right << std::setw(25) << "Average (min - max)\n";
-        std::cout << std::string(60, '-') << "\n";
+        std::cout << std::string(TIMING_TABLE_WIDTH, '-') << "\n";
         
-        print_row("Alice's Initial Encryption", alice_encrypt, 52);
+        print_row("Alice's Initial Encryption", alice_encrypt, DECK_SIZE);
         print_row("Bob's Shuffle (prove)", bob_shuffle_prove, 1);
         print_row("Bob's Shuffle (verify)", bob_shuffle_verify, 1);
         print_row("Alice's Shuffle (prove)", alice_shuffle_prove, 1);
@@ -213,8 +218,8 @@ struct TimingResults {
         print_row("Card Decryption", decrypt, 5);
         
         std::cout << "\n";
-        std::cout << "Total deck size: 52 cards\n";
-        std::cout << "Encrypted deck size: " << (52 * sizeof(shf::Ctxt)) << " bytes\n";
+        std::cout << "Total deck size: " << DECK_SIZE << " cards\n";
+        std::cout << "Encrypted deck size: " << (DECK_SIZE * sizeof(shf::Ctxt)) << " bytes\n";
         std::cout << "Proof size: ~" << (sizeof(shf::ShuffleP)) << " bytes\n";
     }
 };
@@ -265,19 +270,19 @@ public:
     }
     
     void Step1_ServerInitializes() {
-        std::cout << "\n" << std::string(70, '=') << "\n";
+        std::cout << "\n" << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n";
         std::cout << "STEP 1: SERVER INITIALIZES DECK\n";
-        std::cout << std::string(70, '=') << "\n\n";
+        std::cout << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n\n";
         
         std::cout << "Server creates a fresh deck of 52 cards.\n";
         std::cout << "Server knows the original order (for verification only).\n";
         std::cout << "Deck will be encrypted before leaving server's control.\n\n";
         
         std::cout << "Original deck created:\n";
-        for (int i = 0; i < 5; ++i) {
+        for (int i = 0; i < PREVIEW_CARDS_COUNT; ++i) {
             std::cout << "  Card " << std::setw(2) << i << ": " << server.original_deck[i].ToString() << "\n";
         }
-        std::cout << "  ... and " << (52 - 5) << " more cards\n";
+        std::cout << "  ... and " << (DECK_SIZE - PREVIEW_CARDS_COUNT) << " more cards\n";
         
         std::cout << "\nState:\n";
         std::cout << "  Server knows: Original deck order\n";
@@ -286,9 +291,9 @@ public:
     }
     
     void Step2_AliceEncrypts() {
-        std::cout << "\n" << std::string(70, '=') << "\n";
+        std::cout << "\n" << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n";
         std::cout << "STEP 2: ALICE ENCRYPTS DECK (via Server)\n";
-        std::cout << std::string(70, '=') << "\n\n";
+        std::cout << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n\n";
         
         std::cout << "Server sends original deck to Alice (via secure channel).\n";
         server.SendToPlayer("Alice", {});
@@ -299,7 +304,7 @@ public:
         std::vector<shf::Ctxt> encrypted_deck;
         
         {
-            Timer t("Alice encrypt 52 cards", timing.alice_encrypt);
+            Timer t("Alice encrypt " + std::to_string(DECK_SIZE) + " cards", timing.alice_encrypt);
             for (const auto& card : server.original_deck) {
                 shf::Ctxt c = shf::Encrypt(alice.pk, card.point);
                 encrypted_deck.push_back(c);
@@ -318,9 +323,9 @@ public:
     }
     
     void Step3_BobShuffles() {
-        std::cout << "\n" << std::string(70, '=') << "\n";
+        std::cout << "\n" << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n";
         std::cout << "STEP 3: BOB SHUFFLES (via Server)\n";
-        std::cout << std::string(70, '=') << "\n\n";
+        std::cout << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n\n";
         
         std::cout << "Server sends encrypted deck to Bob.\n";
         server.SendToPlayer("Bob", server.current_deck);
@@ -367,9 +372,9 @@ public:
     }
     
     void Step4_AliceShuffles() {
-        std::cout << "\n" << std::string(70, '=') << "\n";
+        std::cout << "\n" << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n";
         std::cout << "STEP 4: ALICE SHUFFLES (via Server)\n";
-        std::cout << std::string(70, '=') << "\n\n";
+        std::cout << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n\n";
         
         std::cout << "Server sends Bob's shuffled deck to Alice.\n";
         server.SendToPlayer("Alice", server.current_deck);
@@ -417,9 +422,9 @@ public:
     }
     
     void Step5_ServerHoldsDeck() {
-        std::cout << "\n" << std::string(70, '=') << "\n";
+        std::cout << "\n" << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n";
         std::cout << "STEP 5: SERVER HOLDS FINAL SHUFFLED DECK\n";
-        std::cout << std::string(70, '=') << "\n\n";
+        std::cout << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n\n";
         
         std::cout << "Both players have shuffled exactly ONCE.\n";
         std::cout << "Server holds the final encrypted deck.\n";
@@ -442,9 +447,9 @@ public:
     }
     
     void Step6_DealCards() {
-        std::cout << "\n" << std::string(70, '=') << "\n";
+        std::cout << "\n" << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n";
         std::cout << "STEP 6: SERVER DEALS CARDS (Texas Hold'em)\n";
-        std::cout << std::string(70, '=') << "\n\n";
+        std::cout << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n\n";
         
         std::cout << "Server will deal hole cards to both players.\n";
         std::cout << "Alice decrypts cards for both players (server coordinates).\n";
@@ -523,9 +528,9 @@ public:
     }
     
     void Step7_CooperativeRevelation() {
-        std::cout << "\n" << std::string(70, '=') << "\n";
+        std::cout << "\n" << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n";
         std::cout << "STEP 7: COOPERATIVE REVELATION (Full Deck)\n";
-        std::cout << std::string(70, '=') << "\n\n";
+        std::cout << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n\n";
         
         std::cout << "Server coordinates revealing the full deck.\n";
         std::cout << "Alice decrypts cards, server verifies against original.\n";
@@ -576,9 +581,9 @@ public:
         std::cout << "  - Bob learns cards from server (not Alice directly)\n";
         std::cout << "  - Alice controls decryption, server distributes results\n";
         
-        std::cout << "\n" << std::string(70, '=') << "\n";
+        std::cout << "\n" << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n";
         std::cout << "PROTOCOL COMPLETE\n";
-        std::cout << std::string(70, '=') << "\n\n";
+        std::cout << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n\n";
         
         std::cout << "Key properties demonstrated:\n";
         std::cout << "  ✓ Server Coordination: All communication via server\n";
