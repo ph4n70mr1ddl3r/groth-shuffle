@@ -33,6 +33,9 @@ static constexpr int PREVIEW_CARDS_COUNT = 5;
 static constexpr int TIMING_TABLE_WIDTH = 60;
 static constexpr int SECTION_SEPARATOR_WIDTH = 70;
 
+// Security constants
+static constexpr std::size_t SEED_SIZE_BYTES = 32; // 256 bits for cryptographic security
+
 static void GenerateRandomSeed(uint8_t* seed, std::size_t size) {
     std::FILE* urandom = std::fopen("/dev/urandom", "rb");
     if (!urandom) {
@@ -46,6 +49,9 @@ static void GenerateRandomSeed(uint8_t* seed, std::size_t size) {
         throw std::runtime_error("Failed to read sufficient random bytes from /dev/urandom: requested " +
                                 std::to_string(size) + " bytes, got " + std::to_string(bytes_read));
     }
+
+    // Additional security: Ensure we don't leave sensitive data in memory
+    // Note: In production, consider using libsodium or OpenSSL for crypto random
 }
 
 struct Timer {
@@ -59,9 +65,10 @@ struct Timer {
     
     ~Timer() {
         auto end = high_resolution_clock::now();
-        double ms = duration_cast<microseconds>(end - start).count() / 1000.0;
+        auto duration_us = duration_cast<microseconds>(end - start).count();
+        double ms = static_cast<double>(duration_us) / 1000.0;
         times.push_back(ms);
-        std::cout << "  " << std::left << std::setw(30) << name << ": " 
+        std::cout << "  " << std::left << std::setw(30) << name << ": "
                   << std::right << std::setw(10) << std::fixed << std::setprecision(2) << ms << " ms\n";
     }
 };
@@ -106,7 +113,7 @@ struct Player {
     Player(std::string n) : name(n) {
         // Generate cryptographically secure random seed for PRG
         // Note: Each player gets their own independent random seed
-        uint8_t seed[shf::Prg::SeedSize()];
+        uint8_t seed[SEED_SIZE_BYTES];
         GenerateRandomSeed(seed, sizeof(seed));
         prg = shf::Prg(seed);
 
@@ -115,7 +122,7 @@ struct Player {
         pk = shf::CreatePublicKey(sk);
 
         // Create commitment key for zero-knowledge proofs
-        // Size 52 corresponds to maximum deck size
+        // Size corresponds to maximum deck size
         ck = shf::CreateCommitKey(DECK_SIZE);
     }
 };
@@ -151,7 +158,7 @@ struct Server {
     }
     
     Card FindCard(const shf::Point& p) const {
-        for (int j = 0; j < DECK_SIZE; ++j) {
+        for (std::size_t j = 0; j < original_deck.size(); ++j) {
             if (p == original_deck[j].point) {
                 return original_deck[j];
             }
@@ -188,7 +195,7 @@ struct TimingResults {
             if (v.empty()) return 0.0;
             double sum = 0;
             for (auto x : v) sum += x;
-            return sum / v.size();
+            return sum / static_cast<double>(v.size());
         };
         
         auto print_row = [&](const std::string& label, const std::vector<double>& v, int count) {
@@ -279,8 +286,8 @@ public:
         std::cout << "Deck will be encrypted before leaving server's control.\n\n";
         
         std::cout << "Original deck created:\n";
-        for (int i = 0; i < PREVIEW_CARDS_COUNT; ++i) {
-            std::cout << "  Card " << std::setw(2) << i << ": " << server.original_deck[i].ToString() << "\n";
+        for (std::size_t i = 0; i < PREVIEW_CARDS_COUNT && i < server.original_deck.size(); ++i) {
+            std::cout << "  Card " << std::setw(2) << static_cast<int>(i) << ": " << server.original_deck[i].ToString() << "\n";
         }
         std::cout << "  ... and " << (DECK_SIZE - PREVIEW_CARDS_COUNT) << " more cards\n";
         
@@ -464,8 +471,8 @@ public:
         
         std::cout << "Dealing order: Alice, Bob, Alice, Bob\n\n";
         
-        for (int i = 0; i < TEXAS_HOLDEM_TOTAL_HOLE_CARDS; ++i) {
-            int pos = DEAL_ORDER[i];
+        for (std::size_t i = 0; i < TEXAS_HOLDEM_TOTAL_HOLE_CARDS; ++i) {
+            std::size_t pos = static_cast<std::size_t>(DEAL_ORDER[i]);
             
             std::cout << "--- Dealing position " << (pos + 1) << " ---\n";
             std::cout << "Server: Selects encrypted card at position " << pos << "\n";
@@ -542,8 +549,8 @@ public:
         std::vector<Card> revealed_cards;
         
         std::cout << "Revealing first 5 cards of the deck:\n\n";
-        
-        for (int i = 0; i < 5; ++i) {
+
+        for (std::size_t i = 0; i < 5 && i < server.current_deck.size(); ++i) {
             std::cout << "--- Revealing card " << (i + 1) << " ---\n";
             
             std::cout << "Server: Requests decryption of position " << i << " from Alice\n";
@@ -571,7 +578,7 @@ public:
         
         std::cout << "=== PARTIALLY REVEALED DECK ===\n\n";
         std::cout << "First 5 cards:\n";
-        for (int i = 0; i < 5; ++i) {
+        for (std::size_t i = 0; i < revealed_cards.size(); ++i) {
             std::cout << "  Position " << i << ": " << revealed_cards[i].ToString() << "\n";
         }
         

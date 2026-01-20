@@ -13,7 +13,8 @@
 namespace shf {
 
 /**
- * @brief A permutation is a list of integers.
+ * @brief A permutation is represented as a vector of indices.
+ * The permutation maps input position i to output position p[i].
  */
 using Permutation = std::vector<std::size_t>;
 
@@ -33,13 +34,16 @@ Permutation CreatePermutation(std::size_t size, shf::Prg& prg);
  */
 template <typename T>
 std::vector<T> Permute(const std::vector<T>& things, const Permutation& perm) {
-  const std::size_t n = things.size();
-  if (n != perm.size()) throw std::invalid_argument("invalid permutation size");
+   const std::size_t n = things.size();
+   if (n != perm.size()) throw std::invalid_argument("invalid permutation size");
 
-  std::vector<T> permuted;
-  permuted.reserve(n);
-  for (const auto& idx : perm) permuted.emplace_back(things[idx]);
-  return permuted;
+   std::vector<T> permuted;
+   permuted.reserve(n);
+   for (const auto& idx : perm) {
+       if (idx >= n) throw std::out_of_range("permutation index out of bounds");
+       permuted.emplace_back(things[idx]);
+   }
+   return permuted;
 }
 
 struct ShuffleP {

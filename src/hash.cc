@@ -82,7 +82,7 @@ shf::Hash& shf::Hash::Update(const uint8_t* bytes, std::size_t nbytes) {
   }
 
   std::size_t words = nbytes / sizeof(uint64_t);
-  unsigned int tail = nbytes - words * sizeof(uint64_t);
+  std::size_t tail = nbytes - words * sizeof(uint64_t);
 
   for (std::size_t i = 0; i < words; ++i) {
     const uint64_t t =
@@ -149,7 +149,7 @@ shf::Digest shf::Hash::Finalize() {
 
 bool shf::DigestEquals(const shf::Digest& a, const shf::Digest& b) {
   uint8_t equal = 0;
-  for (std::size_t i = 0; i < shf::Hash::DigestSize(); ++i) equal |= a[i] ^ b[i];
+  for (std::size_t i = 0; i < shf::Hash::DigestSize(); ++i) equal |= static_cast<uint8_t>(a[i] ^ b[i]);
   return equal == 0;
 }
 

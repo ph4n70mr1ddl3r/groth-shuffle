@@ -6,9 +6,10 @@ project( shuffle
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS
-  "${CMAKE_CXX_FLAGS} -march=native -Wall -Wextra -pedantic -Werror")
+  "${CMAKE_CXX_FLAGS} -march=native -Wall -Wextra -pedantic -Werror -Wshadow -Wundef -Wcast-align -Wunused")
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG -fstack-protector-strong -D_FORTIFY_SOURCE=2")
 
 set(RELIC_LIB "${CMAKE_SOURCE_DIR}/thirdparty/lib/librelic_s.a")
 

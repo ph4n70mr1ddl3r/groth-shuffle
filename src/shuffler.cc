@@ -45,8 +45,8 @@ static inline std::vector<shf::Scalar> PermutationAsScalars(
   std::vector<shf::Scalar> s;
   const std::size_t n = p.size();
   s.reserve(n);
-  for (std::size_t i = 0; i < n; ++i)
-    s.emplace_back(shf::Scalar::CreateFromInt(p[i]));
+   for (std::size_t i = 0; i < n; ++i)
+     s.emplace_back(shf::Scalar::CreateFromInt(static_cast<unsigned int>(p[i])));
   return s;
 }
 
@@ -87,13 +87,13 @@ static inline shf::Scalar NegateInnerProd(const std::vector<shf::Scalar>& a,
 }
 
 static inline shf::Scalar ShuffleChallenge1(shf::Hash& hash,
-                                           const std::vector<shf::Ctxt>& Es,
-                                           const std::vector<shf::Ctxt>& pEs,
-                                           const shf::Point& C) {
-  for (const shf::Ctxt& E : Es) hash.Update(E.U).Update(E.V);
-  for (const shf::Ctxt& E : pEs) hash.Update(E.U).Update(E.V);
-  hash.Update(C);
-  return shf::ScalarFromHash(hash);
+                                            const std::vector<shf::Ctxt>& Es,
+                                            const std::vector<shf::Ctxt>& pEs,
+                                            const shf::Point& C) {
+   for (const auto& E : Es) hash.Update(E.U).Update(E.V);
+   for (const auto& E : pEs) hash.Update(E.U).Update(E.V);
+   hash.Update(C);
+   return shf::ScalarFromHash(hash);
 }
 
 static inline shf::Scalar ShuffleChallenge2(shf::Hash& hash, const shf::Scalar& c,
@@ -109,10 +109,15 @@ static inline shf::Scalar ShuffleChallenge3(shf::Hash& hash,
 }
 
 shf::ShuffleP shf::Shuffler::Shuffle(const std::vector<shf::Ctxt>& Es,
-                                    shf::Hash& hash) {
-  if (Es.empty()) throw std::invalid_argument("ciphertexts cannot be empty");
+                                     shf::Hash& hash) {
+   if (Es.empty()) throw std::invalid_argument("ciphertexts cannot be empty");
 
-  const std::size_t n = Es.size();
+   const std::size_t n = Es.size();
+
+   // Security check: Ensure n doesn't exceed commitment key size
+   if (n > m_ck.G.size()) {
+       throw std::invalid_argument("ciphertext count exceeds commitment key size");
+   }
 
   // permute and randomize ciphertexts
   const Permutation p = CreatePermutation(n, m_prg);
@@ -161,25 +166,29 @@ static inline shf::Point CommitConstantNoRandomness(const shf::CommitKey& ck,
 }
 
 bool shf::Shuffler::VerifyShuffle(const std::vector<shf::Ctxt>& ctxts,
-                                  const shf::ShuffleP& proof, shf::Hash& hash) {
-  if (ctxts.empty()) throw std::invalid_argument("ciphertexts cannot be empty");
-  if (ctxts.size() != proof.permuted.size()) return false;
+                                   const shf::ShuffleP& proof, shf::Hash& hash) {
+   if (ctxts.empty()) throw std::invalid_argument("ciphertexts cannot be empty");
+   if (ctxts.size() != proof.permuted.size()) return false;
 
-  const Scalar x = ShuffleChallenge1(hash, ctxts, proof.permuted, proof.Ca);
-  const Scalar y = ShuffleChallenge2(hash, x, proof.Cb);
-  const Scalar z = ShuffleChallenge3(hash, y);
+   const std::size_t n = ctxts.size();
+   // Security check: Ensure n doesn't exceed commitment key size
+   if (n > m_ck.G.size()) {
+       return false;
+   }
 
-  const Point Cz = CommitConstantNoRandomness(m_ck, -z);
-  const Point Cd = y * proof.Ca + proof.Cb;
-  const Point CdCz = Cd + Cz;
+   const Scalar x = ShuffleChallenge1(hash, ctxts, proof.permuted, proof.Ca);
+   const Scalar y = ShuffleChallenge2(hash, x, proof.Cb);
+   const Scalar z = ShuffleChallenge3(hash, y);
 
-  const std::size_t n = ctxts.size();
+   const Point Cz = CommitConstantNoRandomness(m_ck, -z);
+   const Point Cd = y * proof.Ca + proof.Cb;
+   const Point CdCz = Cd + Cz;
   std::vector<Scalar> xexp = CreateReservedVector<Scalar>(n);
   xexp.emplace_back(x);
   Scalar prod = x - z;
   for (std::size_t i = 1; i < n; ++i) {
     xexp.emplace_back(xexp[i - 1] * x);
-    prod *= Scalar::CreateFromInt(i) * y + xexp[i] - z;
+     prod *= Scalar::CreateFromInt(static_cast<unsigned int>(i)) * y + xexp[i] - z;
   }
 
   const ProductP proof0 = proof.product_proof;
