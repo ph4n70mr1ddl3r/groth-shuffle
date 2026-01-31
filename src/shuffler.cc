@@ -77,11 +77,11 @@ static inline std::vector<shf::Ctxt> Randomize(
 }
 
 static inline shf::Scalar NegateInnerProd(const std::vector<shf::Scalar>& a,
-                                         const std::vector<shf::Scalar>& b) {
+                                          const std::vector<shf::Scalar>& b) {
   if (a.size() != b.size()) {
     throw std::invalid_argument("a and b must have the same size");
   }
-  shf::Scalar d;
+  shf::Scalar d = shf::Scalar::CreateFromInt(0);
   for (std::size_t i = 0; i < a.size(); i++) d += a[i] * b[i];
   return -d;
 }

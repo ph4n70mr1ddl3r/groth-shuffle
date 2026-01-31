@@ -7,14 +7,19 @@
 
 #if defined(__linux__) || defined(__APPLE__) || defined(__unix__)
 #include <strings.h>
-#define secure_clear(ptr, size) explicit_bzero(ptr, size)
+static inline void secure_clear(void* ptr, std::size_t size) {
+    explicit_bzero(ptr, size);
+}
 #elif defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
-#define secure_clear(ptr, size) SecureZeroMemory(ptr, size)
+static inline void secure_clear(void* ptr, std::size_t size) {
+    SecureZeroMemory(ptr, size);
+}
 #else
-#define secure_clear(ptr, size) \
-  volatile unsigned char* p = static_cast<volatile unsigned char*>(ptr); \
-  for (std::size_t i = 0; i < size; ++i) p[i] = 0
+static inline void secure_clear(void* ptr, std::size_t size) {
+    volatile unsigned char* p = static_cast<volatile unsigned char*>(ptr);
+    for (std::size_t i = 0; i < size; ++i) p[i] = 0;
+}
 #endif
 
 #include "shuffler.h"
@@ -71,13 +76,22 @@ inline static void aes128_enc(__m128i* key_schedule, uint8_t* pt, uint8_t* ct) {
 }
 
 shf::Prg::Prg() {
+  struct FileGuard {
+    std::FILE* file;
+    explicit FileGuard(std::FILE* f) : file(f) {}
+    ~FileGuard() { if (file) std::fclose(file); }
+    FileGuard(const FileGuard&) = delete;
+    FileGuard& operator=(const FileGuard&) = delete;
+  };
+
   std::uint8_t seed[SeedSize()];
-  FILE* urandom = std::fopen("/dev/urandom", "rb");
+  std::FILE* urandom = std::fopen("/dev/urandom", "rb");
   if (!urandom) {
     throw std::runtime_error("Failed to open /dev/urandom for PRG seed");
   }
+  FileGuard guard(urandom);
+
   std::size_t bytes_read = std::fread(seed, 1, SeedSize(), urandom);
-  std::fclose(urandom);
   if (bytes_read != SeedSize()) {
     throw std::runtime_error("Failed to read sufficient random bytes from /dev/urandom");
   }

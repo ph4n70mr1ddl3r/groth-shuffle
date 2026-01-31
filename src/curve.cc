@@ -54,6 +54,9 @@ shf::Point shf::Point::CreateRandom() {
 
 shf::Point shf::Point::Read(const uint8_t* bytes) {
   Point p;
+  if (!bytes) {
+    throw std::invalid_argument("bytes cannot be null");
+  }
   if (!bytes[0]) ec_read_bin(p.m_internal, bytes + 1, ByteSize() - 1);
   return p;
 }
@@ -71,7 +74,6 @@ shf::Point::Point(const shf::Point& other) {
 }
 
 shf::Point::Point(shf::Point&& other) noexcept {
-  ec_new(m_internal);
   ec_copy(m_internal, other.m_internal);
   ec_set_infty(other.m_internal);
 }
@@ -84,10 +86,10 @@ shf::Point& shf::Point::operator=(const shf::Point& other) {
 }
 
 shf::Point& shf::Point::operator=(shf::Point&& other) noexcept {
-  ec_free(m_internal);
-  ec_new(m_internal);
-  ec_copy(m_internal, other.m_internal);
-  ec_set_infty(other.m_internal);
+  if (this != &other) {
+    ec_copy(m_internal, other.m_internal);
+    ec_set_infty(other.m_internal);
+  }
   return *this;
 }
 
@@ -147,7 +149,6 @@ shf::Scalar::Scalar(const shf::Scalar& other) {
 }
 
 shf::Scalar::Scalar(shf::Scalar&& other) noexcept {
-  bn_new(m_internal);
   bn_copy(m_internal, other.m_internal);
   bn_zero(other.m_internal);
 }
@@ -160,10 +161,10 @@ shf::Scalar& shf::Scalar::operator=(const shf::Scalar& other) {
 }
 
 shf::Scalar& shf::Scalar::operator=(shf::Scalar&& other) noexcept {
-  bn_free(m_internal);
-  bn_new(m_internal);
-  bn_copy(m_internal, other.m_internal);
-  bn_zero(other.m_internal);
+  if (this != &other) {
+    bn_copy(m_internal, other.m_internal);
+    bn_zero(other.m_internal);
+  }
   return *this;
 }
 

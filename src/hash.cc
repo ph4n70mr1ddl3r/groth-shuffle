@@ -129,7 +129,7 @@ shf::Digest shf::Hash::Finalize() {
 
   for (std::size_t i = 0; i < kStateSize; ++i) {
     const unsigned int t1 = static_cast<uint32_t>(mState[i]);
-    const unsigned int t2 = static_cast<uint32_t>((mState[i] >> 16) >> 16);
+    const unsigned int t2 = static_cast<uint32_t>(mState[i] >> 32);
     mStateBytes[i * 8 + 0] = (uint8_t)t1;
     mStateBytes[i * 8 + 1] = (uint8_t)(t1 >> 8);
     mStateBytes[i * 8 + 2] = (uint8_t)(t1 >> 16);

@@ -37,13 +37,21 @@ static constexpr int SECTION_SEPARATOR_WIDTH = 70;
 static constexpr std::size_t SEED_SIZE_BYTES = 32; // 256 bits for cryptographic security
 
 static void GenerateRandomSeed(uint8_t* seed, std::size_t size) {
+    struct FileGuard {
+        std::FILE* file;
+        explicit FileGuard(std::FILE* f) : file(f) {}
+        ~FileGuard() { if (file) std::fclose(file); }
+        FileGuard(const FileGuard&) = delete;
+        FileGuard& operator=(const FileGuard&) = delete;
+    };
+
     std::FILE* urandom = std::fopen("/dev/urandom", "rb");
     if (!urandom) {
         throw std::runtime_error("Failed to open /dev/urandom for random seed generation");
     }
+    FileGuard guard(urandom);
 
     const std::size_t bytes_read = std::fread(seed, 1, size, urandom);
-    std::fclose(urandom);
 
     if (bytes_read != size) {
         throw std::runtime_error("Failed to read sufficient random bytes from /dev/urandom: requested " +
@@ -605,11 +613,13 @@ public:
 
 int main() {
     shf::CurveInit();
-    
+
     std::cout << "\nInitializing Server-Based Poker Simulation...\n\n";
-    
+
     PokerServerSimulation sim;
     sim.RunProtocol();
-    
+
+    shf::CurveCleanup();
+
     return 0;
 }
