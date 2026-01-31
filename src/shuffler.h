@@ -39,9 +39,13 @@ std::vector<T> Permute(const std::vector<T>& things, const Permutation& perm) {
 
    std::vector<T> permuted;
    permuted.reserve(n);
-   for (const auto& idx : perm) {
-       if (idx >= n) throw std::out_of_range("permutation index out of bounds");
-       permuted.emplace_back(things[idx]);
+   for (std::size_t i = 0; i < perm.size(); ++i) {
+       if (perm[i] >= n) {
+           throw std::out_of_range("permutation index " + std::to_string(i) +
+                                   " = " + std::to_string(perm[i]) +
+                                   " out of bounds (size=" + std::to_string(n) + ")");
+       }
+       permuted.emplace_back(things[perm[i]]);
    }
    return permuted;
 }

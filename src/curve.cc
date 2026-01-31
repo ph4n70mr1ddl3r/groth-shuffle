@@ -46,6 +46,10 @@ void shf::CurveCleanup() {
   k_relic_initialized = 0;
 }
 
+const bn_t* shf::GetCurveOrder() {
+  return &k_curve_order;
+}
+
 shf::Point shf::Point::Generator() {
   Point g;
   ec_curve_get_gen(g.m_internal);

@@ -21,6 +21,12 @@ void CurveInit();
  */
 void CurveCleanup();
 
+/**
+ * @brief Get the curve order for scalar modulo operations.
+ * @return pointer to the curve order big number
+ */
+const bn_t* GetCurveOrder();
+
 class Point;
 
 class Scalar {

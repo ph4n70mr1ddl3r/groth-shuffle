@@ -134,6 +134,9 @@ shf::Prg::Prg(const uint8_t* seed) {
 }
 
 static inline __m128i CreateMask(const long counter) {
+  if (counter < 0) {
+    throw std::runtime_error("PRG counter overflow detected");
+  }
   return _mm_set_epi64x(PRG_DOMAIN_SEPARATOR, counter);
 }
 

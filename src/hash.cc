@@ -164,7 +164,8 @@ shf::Digest shf::Hash::Finalize() {
     mStateBytes[i * 8 + 7] = (uint8_t)(t2 >> 24);
   }
 
-  // truncate
+  static_assert(DigestSize() <= kStateSize * 8, "Digest size exceeds state size");
+
   shf::Digest digest = {0};
   for (std::size_t i = 0; i < digest.size(); ++i) digest[i] = mStateBytes[i];
 
@@ -180,5 +181,8 @@ bool shf::DigestEquals(const shf::Digest& a, const shf::Digest& b) {
 shf::Scalar shf::ScalarFromHash(const shf::Hash& hash) {
   auto copy(hash);
   const auto d = copy.Finalize();
-  return shf::Scalar::Read(d.data());
+  shf::Scalar result = shf::Scalar::Read(d.data());
+  const bn_t* curve_order = shf::GetCurveOrder();
+  bn_mod_basic(result.m_internal, result.m_internal, *curve_order);
+  return result;
 }
