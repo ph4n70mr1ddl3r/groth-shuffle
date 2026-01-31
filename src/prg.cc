@@ -7,16 +7,16 @@
 
 #if defined(__linux__) || defined(__APPLE__) || defined(__unix__)
 #include <strings.h>
-static inline void secure_clear(void* ptr, std::size_t size) {
+void shf::secure_clear(void* ptr, std::size_t size) {
     explicit_bzero(ptr, size);
 }
 #elif defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
-static inline void secure_clear(void* ptr, std::size_t size) {
+void shf::secure_clear(void* ptr, std::size_t size) {
     SecureZeroMemory(ptr, size);
 }
 #else
-static inline void secure_clear(void* ptr, std::size_t size) {
+void shf::secure_clear(void* ptr, std::size_t size) {
     volatile unsigned char* p = static_cast<volatile unsigned char*>(ptr);
     for (std::size_t i = 0; i < size; ++i) p[i] = 0;
 }

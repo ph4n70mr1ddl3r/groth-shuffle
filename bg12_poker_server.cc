@@ -53,7 +53,7 @@ static void GenerateRandomSeed(uint8_t* seed, std::size_t size) {
     const std::size_t bytes_read = std::fread(seed, 1, size, urandom);
 
     if (bytes_read != size) {
-        std::memset(seed, 0, size);
+        shf::secure_clear(seed, size);
         throw std::runtime_error("Failed to read sufficient random bytes from /dev/urandom: requested " +
                                 std::to_string(size) + " bytes, got " + std::to_string(bytes_read));
     }
@@ -122,11 +122,7 @@ struct Player {
         GenerateRandomSeed(seed, sizeof(seed));
         prg = shf::Prg(seed);
         // Use secure_clear instead of memset to prevent compiler optimization
-        // Note: secure_clear is defined in prg.cc via anonymous namespace
-        {
-            extern void secure_clear(void*, std::size_t);
-            secure_clear(seed, sizeof(seed));
-        }
+        shf::secure_clear(seed, sizeof(seed));
 
         // Generate ElGamal keypair for encryption/decryption
         sk = shf::CreateSecretKey();

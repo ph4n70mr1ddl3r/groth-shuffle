@@ -9,6 +9,8 @@
 
 namespace shf {
 
+void secure_clear(void* ptr, std::size_t size);
+
 class Prg {
  public:
   static constexpr std::size_t BlockSize() { return sizeof(__m128i); };

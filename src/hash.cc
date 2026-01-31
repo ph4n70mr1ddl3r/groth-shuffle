@@ -95,6 +95,9 @@ shf::Hash& shf::Hash::Update(const uint8_t* bytes, std::size_t nbytes) {
   std::size_t tail = nbytes - words * sizeof(uint64_t);
 
   for (std::size_t i = 0; i < words; ++i) {
+    if (p + sizeof(uint64_t) > bytes + nbytes) {
+      throw std::runtime_error("Internal error: hash buffer bounds violation");
+    }
     const uint64_t t =
         (uint64_t)(p[0]) | ((uint64_t)(p[1]) << 8) |
         ((uint64_t)(p[2]) << 16) | ((uint64_t)(p[3]) << 24) |
