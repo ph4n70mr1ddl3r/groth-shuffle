@@ -5,13 +5,6 @@
 
 namespace {
 
-template<typename T>
-std::vector<T> CreateReservedVector(std::size_t size) {
-  std::vector<T> v;
-  v.reserve(size);
-  return v;
-}
-
 inline std::vector<shf::Scalar> CreateRandomScalarVector(std::size_t size) {
   std::vector<shf::Scalar> v;
   v.reserve(size);
@@ -41,7 +34,7 @@ shf::Permutation shf::CreatePermutation(std::size_t size, shf::Prg& prg) {
 }
 
 static inline std::vector<shf::Scalar> PermutationAsScalars(
-    const shf::Permutation p) {
+    const shf::Permutation& p) {
   std::vector<shf::Scalar> s;
   const std::size_t n = p.size();
   s.reserve(n);
@@ -69,7 +62,8 @@ static inline std::vector<shf::Ctxt> Randomize(
     const shf::PublicKey& pk, const std::vector<shf::Ctxt>& Es,
     const std::vector<shf::Scalar>& rs) {
   const std::size_t n = Es.size();
-  std::vector<shf::Ctxt> randomized = CreateReservedVector<shf::Ctxt>(n);
+  std::vector<shf::Ctxt> randomized;
+  randomized.reserve(n);
   for (std::size_t i = 0; i < n; ++i) {
     randomized.emplace_back(Randomize(pk, Es[i], rs[i]));
   }
@@ -138,7 +132,8 @@ shf::ShuffleP shf::Shuffler::Shuffle(const std::vector<shf::Ctxt>& Es,
   const Scalar y = ShuffleChallenge2(hash, x, Cb.C);
   const Scalar z = ShuffleChallenge3(hash, y);
 
-  std::vector<Scalar> dz = CreateReservedVector<Scalar>(n);
+  std::vector<Scalar> dz;
+  dz.reserve(n);
   dz.emplace_back(y * a[0] + b[0] - z);
   Scalar prod = dz[0];
   for (std::size_t i = 1; i < n; ++i) {
@@ -180,10 +175,11 @@ bool shf::Shuffler::VerifyShuffle(const std::vector<shf::Ctxt>& ctxts,
    const Scalar y = ShuffleChallenge2(hash, x, proof.Cb);
    const Scalar z = ShuffleChallenge3(hash, y);
 
-   const Point Cz = CommitConstantNoRandomness(m_ck, -z);
-   const Point Cd = y * proof.Ca + proof.Cb;
-   const Point CdCz = Cd + Cz;
-  std::vector<Scalar> xexp = CreateReservedVector<Scalar>(n);
+  const Point Cz = CommitConstantNoRandomness(m_ck, -z);
+  const Point Cd = y * proof.Ca + proof.Cb;
+  const Point CdCz = Cd + Cz;
+  std::vector<Scalar> xexp;
+  xexp.reserve(n);
   xexp.emplace_back(x);
   Scalar prod = x - z;
   for (std::size_t i = 1; i < n; ++i) {

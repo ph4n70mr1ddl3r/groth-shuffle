@@ -57,7 +57,7 @@ struct ShuffleP {
 class Shuffler {
  public:
   Shuffler(const PublicKey& pk, const CommitKey& ck, Prg& prg)
-      : m_pk(pk), m_ck(ck), m_prg(prg){};
+      : m_pk(pk), m_ck(ck), m_prg(prg) {}
 
   /**
    * @brief Shuffle a set of ciphertexts and return a proof of correctness.

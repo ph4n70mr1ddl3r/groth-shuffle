@@ -73,13 +73,6 @@ bool shf::VerifyProof(const shf::DLogEqS& statement, shf::Hash& hash,
   return rG == T - cA && rH == K - cB;
 }
 
-// create a vector and reserve a size
-static inline std::vector<shf::Scalar> CreateScalarVector(std::size_t size) {
-  std::vector<shf::Scalar> v;
-  v.reserve(size);
-  return v;
-}
-
 static inline shf::Scalar ProductChallenge(shf::Hash& hash, const shf::Point& C0,
                                           const shf::Point& C1,
                                           const shf::Point& C2) {
@@ -95,9 +88,12 @@ shf::ProductP shf::CreateProof(const shf::CommitKey& ck, shf::Hash& hash,
   const auto C = statement.C;
   const auto b = statement.b;
 
-  auto ds = CreateScalarVector(n);
-  auto bs = CreateScalarVector(n);
-  auto es = CreateScalarVector(n);
+  std::vector<shf::Scalar> ds;
+  std::vector<shf::Scalar> bs;
+  std::vector<shf::Scalar> es;
+  ds.reserve(n);
+  bs.reserve(n);
+  es.reserve(n);
 
   for (std::size_t i = 0; i < n; ++i) {
     ds.emplace_back(Scalar::CreateRandom());
@@ -111,8 +107,10 @@ shf::ProductP shf::CreateProof(const shf::CommitKey& ck, shf::Hash& hash,
   es[0] = ds[0];
   es[n - 1] = Scalar();
 
-  auto sd = CreateScalarVector(n);
-  auto bd = CreateScalarVector(n);
+  std::vector<shf::Scalar> sd;
+  std::vector<shf::Scalar> bd;
+  sd.reserve(n);
+  bd.reserve(n);
 
   for (std::size_t i = 0; i < n; ++i) {
     if (i < n - 1) {
@@ -130,8 +128,10 @@ shf::ProductP shf::CreateProof(const shf::CommitKey& ck, shf::Hash& hash,
 
   const auto c = ProductChallenge(hash, Cr0.C, Cr1.C, Cr2.C);
 
-  auto aa = CreateScalarVector(n);
-  auto bb = CreateScalarVector(n);
+  std::vector<shf::Scalar> aa;
+  std::vector<shf::Scalar> bb;
+  aa.reserve(n);
+  bb.reserve(n);
 
   for (std::size_t i = 0; i < n; ++i) {
     aa.emplace_back(c * w0[i] + ds[i]);
@@ -210,7 +210,8 @@ static inline std::vector<shf::Scalar> MulAndSum(
     const std::vector<shf::Scalar>& a, const std::vector<shf::Scalar>& b,
     const shf::Scalar& x) {
   const auto n = a.size();
-  auto c = CreateScalarVector(n);
+  std::vector<shf::Scalar> c;
+  c.reserve(n);
   for (std::size_t i = 0; i < n; ++i) c.emplace_back(a[i] + b[i] * x);
   return c;
 }
@@ -224,7 +225,8 @@ shf::MultiExpP shf::CreateProof(const shf::CommitKey& ck, const shf::PublicKey& 
   const Ctxt E = statement.E;
   const Point C = statement.C;
 
-  auto a0 = CreateScalarVector(n);
+  std::vector<shf::Scalar> a0;
+  a0.reserve(n);
   for (std::size_t i = 0; i < n; ++i) a0.emplace_back(Scalar::CreateRandom());
 
   const CommitmentAndRandomness Cr0 = Commit(ck, a0);

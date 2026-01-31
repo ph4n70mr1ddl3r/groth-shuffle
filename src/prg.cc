@@ -22,8 +22,6 @@ static inline void secure_clear(void* ptr, std::size_t size) {
 }
 #endif
 
-#include "shuffler.h"
-
 // Security note: This PRG implementation uses AES in counter mode with AES-NI
 // acceleration for high-performance cryptographically secure pseudorandom
 // generation. The implementation securely wipes sensitive data from memory.

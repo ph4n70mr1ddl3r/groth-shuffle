@@ -57,7 +57,13 @@ shf::Point shf::Point::Read(const uint8_t* bytes) {
   if (!bytes) {
     throw std::invalid_argument("bytes cannot be null");
   }
-  if (!bytes[0]) ec_read_bin(p.m_internal, bytes + 1, ByteSize() - 1);
+  if (bytes[0] == 1) {
+    ec_set_infty(p.m_internal);
+  } else if (bytes[0] == 0) {
+    ec_read_bin(p.m_internal, bytes + 1, ByteSize() - 1);
+  } else {
+    throw std::invalid_argument("invalid point encoding");
+  }
   return p;
 }
 
