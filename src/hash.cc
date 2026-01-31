@@ -59,6 +59,10 @@ static inline void keccakf(uint64_t state[25]) {
 }
 
 shf::Hash& shf::Hash::Update(const uint8_t* bytes, std::size_t nbytes) {
+  if (!bytes) {
+    throw std::invalid_argument("bytes cannot be null");
+  }
+  
   unsigned int old_tail = (8 - mByteIndex) & 7;
   const uint8_t* p = bytes;
 
@@ -71,6 +75,9 @@ shf::Hash& shf::Hash::Update(const uint8_t* bytes, std::size_t nbytes) {
     nbytes -= old_tail;
     while (old_tail--) mSaved |= (uint64_t)(*(p++)) << ((mByteIndex++) * 8);
 
+    if (mWordIndex >= kCutoff) {
+      throw std::runtime_error("Hash state overflow");
+    }
     mState[mWordIndex] ^= mSaved;
     mByteIndex = 0;
     mSaved = 0;
@@ -91,6 +98,9 @@ shf::Hash& shf::Hash::Update(const uint8_t* bytes, std::size_t nbytes) {
         ((uint64_t)(p[4]) << 32) | ((uint64_t)(p[5]) << 40) |
         ((uint64_t)(p[6]) << 48) | ((uint64_t)(p[7]) << 56);
 
+    if (mWordIndex >= kCutoff) {
+      throw std::runtime_error("Hash state overflow");
+    }
     mState[mWordIndex] ^= t;
 
     if (++mWordIndex == kCutoff) {
@@ -100,13 +110,21 @@ shf::Hash& shf::Hash::Update(const uint8_t* bytes, std::size_t nbytes) {
     p += sizeof(uint64_t);
   }
 
-  while (tail--) mSaved |= (uint64_t)(*(p++)) << ((mByteIndex++) * 8);
+  while (tail--) {
+    if (mByteIndex >= 8) {
+      throw std::runtime_error("Byte index overflow");
+    }
+    mSaved |= (uint64_t)(*(p++)) << ((mByteIndex++) * 8);
+  }
 
   return *this;
 }
 
 shf::Hash& shf::Hash::Update(const shf::Point& point) {
   constexpr auto n = Point::ByteSize();
+  if (n == 0) {
+    throw std::runtime_error("Point byte size is zero");
+  }
   std::array<uint8_t, Point::ByteSize()> data;
   point.Write(data.data());
   Update(data.data(), n);
@@ -115,6 +133,9 @@ shf::Hash& shf::Hash::Update(const shf::Point& point) {
 
 shf::Hash& shf::Hash::Update(const shf::Scalar& scalar) {
   constexpr auto n = Scalar::ByteSize();
+  if (n == 0) {
+    throw std::runtime_error("Scalar byte size is zero");
+  }
   std::array<uint8_t, Scalar::ByteSize()> data;
   scalar.Write(data.data());
   Update(data.data(), n);

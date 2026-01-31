@@ -1,7 +1,5 @@
 #include "zkp.h"
 
-#include <cstring>
-
 static inline shf::Scalar DLogChallenge(shf::Hash& hash, const shf::Point& p0,
                                        const shf::Point& p1,
                                        const shf::Point& p2) {

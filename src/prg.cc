@@ -89,10 +89,18 @@ shf::Prg::Prg() {
   }
   FileGuard guard(urandom);
 
-  std::size_t bytes_read = std::fread(seed, 1, SeedSize(), urandom);
-  if (bytes_read != SeedSize()) {
-    throw std::runtime_error("Failed to read sufficient random bytes from /dev/urandom");
+  std::size_t total_read = 0;
+  while (total_read < SeedSize()) {
+    std::size_t bytes_read = std::fread(seed + total_read, 1, SeedSize() - total_read, urandom);
+    if (std::ferror(urandom)) {
+      throw std::runtime_error("Error reading from /dev/urandom");
+    }
+    if (bytes_read == 0) {
+      throw std::runtime_error("Unexpected EOF while reading from /dev/urandom");
+    }
+    total_read += bytes_read;
   }
+
   std::memcpy(m_seed, seed, SeedSize());
   secure_clear(seed, SeedSize());
   Init();

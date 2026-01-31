@@ -18,13 +18,19 @@ void shf::CurveInit() {
     throw std::runtime_error("Failed to initialize Relic cryptographic library core");
   }
 
-  TRY { ec_param_set_any(); }
+  TRY {
+    ec_param_set_any();
+  }
   CATCH_ANY {
     core_clean();
     throw std::runtime_error("Failed to set elliptic curve parameters in Relic library");
   }
+  END_TRY
 
-  bn_new(k_curve_order);
+  if (bn_new(k_curve_order) != RLC_OK) {
+    core_clean();
+    throw std::runtime_error("Failed to allocate curve order big number");
+  }
   ec_curve_get_ord(k_curve_order);
 
   k_relic_initialized = 1;
@@ -68,18 +74,25 @@ shf::Point shf::Point::Read(const uint8_t* bytes) {
 }
 
 shf::Point::Point() {
-  ec_new(m_internal);
+  if (ec_new(m_internal) != RLC_OK) {
+    throw std::runtime_error("Failed to allocate elliptic curve point");
+  }
   ec_set_infty(m_internal);
 }
 
 shf::Point::~Point() { ec_free(m_internal); }
 
 shf::Point::Point(const shf::Point& other) {
-  ec_new(m_internal);
+  if (ec_new(m_internal) != RLC_OK) {
+    throw std::runtime_error("Failed to allocate elliptic curve point");
+  }
   ec_copy(m_internal, other.m_internal);
 }
 
 shf::Point::Point(shf::Point&& other) noexcept {
+  if (ec_new(m_internal) != RLC_OK) {
+    std::terminate();
+  }
   ec_copy(m_internal, other.m_internal);
   ec_set_infty(other.m_internal);
 }
@@ -143,18 +156,25 @@ void shf::Point::Write(uint8_t* dest) const {
 }
 
 shf::Scalar::Scalar() {
-  bn_new(m_internal);
+  if (bn_new(m_internal) != RLC_OK) {
+    throw std::runtime_error("Failed to allocate big number");
+  }
   bn_zero(m_internal);
 }
 
 shf::Scalar::~Scalar() { bn_free(m_internal); }
 
 shf::Scalar::Scalar(const shf::Scalar& other) {
-  bn_new(m_internal);
+  if (bn_new(m_internal) != RLC_OK) {
+    throw std::runtime_error("Failed to allocate big number");
+  }
   bn_copy(m_internal, other.m_internal);
 }
 
 shf::Scalar::Scalar(shf::Scalar&& other) noexcept {
+  if (bn_new(m_internal) != RLC_OK) {
+    std::terminate();
+  }
   bn_copy(m_internal, other.m_internal);
   bn_zero(other.m_internal);
 }
@@ -178,22 +198,34 @@ bool shf::Scalar::IsZero() const { return bn_is_zero(m_internal) == 1; }
 
 shf::Scalar shf::Scalar::operator+(const shf::Scalar& other) const {
   Scalar r;
-  bn_add(r.m_internal, m_internal, other.m_internal);
-  bn_mod(r.m_internal, r.m_internal, k_curve_order);
+  if (bn_add(r.m_internal, m_internal, other.m_internal) != RLC_OK) {
+    throw std::runtime_error("Scalar addition failed");
+  }
+  if (bn_mod(r.m_internal, r.m_internal, k_curve_order) != RLC_OK) {
+    throw std::runtime_error("Scalar modulo failed");
+  }
   return r;
 }
 
 shf::Scalar shf::Scalar::operator-(const shf::Scalar& other) const {
   Scalar r;
-  bn_sub(r.m_internal, m_internal, other.m_internal);
-  bn_mod(r.m_internal, r.m_internal, k_curve_order);
+  if (bn_sub(r.m_internal, m_internal, other.m_internal) != RLC_OK) {
+    throw std::runtime_error("Scalar subtraction failed");
+  }
+  if (bn_mod(r.m_internal, r.m_internal, k_curve_order) != RLC_OK) {
+    throw std::runtime_error("Scalar modulo failed");
+  }
   return r;
 }
 
 shf::Scalar shf::Scalar::operator*(const shf::Scalar& other) const {
   Scalar r;
-  bn_mul(r.m_internal, m_internal, other.m_internal);
-  bn_mod(r.m_internal, r.m_internal, k_curve_order);
+  if (bn_mul(r.m_internal, m_internal, other.m_internal) != RLC_OK) {
+    throw std::runtime_error("Scalar multiplication failed");
+  }
+  if (bn_mod(r.m_internal, r.m_internal, k_curve_order) != RLC_OK) {
+    throw std::runtime_error("Scalar modulo failed");
+  }
   return r;
 }
 
@@ -204,14 +236,22 @@ shf::Scalar shf::Scalar::operator-() const {
 }
 
 shf::Scalar& shf::Scalar::operator+=(const shf::Scalar& other) {
-  bn_add(m_internal, m_internal, other.m_internal);
-  bn_mod(m_internal, m_internal, k_curve_order);
+  if (bn_add(m_internal, m_internal, other.m_internal) != RLC_OK) {
+    throw std::runtime_error("Scalar addition failed");
+  }
+  if (bn_mod(m_internal, m_internal, k_curve_order) != RLC_OK) {
+    throw std::runtime_error("Scalar modulo failed");
+  }
   return *this;
 }
 
 shf::Scalar& shf::Scalar::operator*=(const shf::Scalar& other) {
-  bn_mul(m_internal, m_internal, other.m_internal);
-  bn_mod(m_internal, m_internal, k_curve_order);
+  if (bn_mul(m_internal, m_internal, other.m_internal) != RLC_OK) {
+    throw std::runtime_error("Scalar multiplication failed");
+  }
+  if (bn_mod(m_internal, m_internal, k_curve_order) != RLC_OK) {
+    throw std::runtime_error("Scalar modulo failed");
+  }
   return *this;
 }
 
