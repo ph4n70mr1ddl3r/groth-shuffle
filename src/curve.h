@@ -58,7 +58,7 @@ class Scalar {
   bool operator==(const Scalar& other) const;
   bool operator!=(const Scalar& other) const { return !(*this == other); };
 
-  void Write(uint8_t* dest) const;
+  void Write(uint8_t* dest, std::size_t dest_size = ByteSize()) const;
 
   void Print() const { bn_print(m_internal); }
 
@@ -99,7 +99,7 @@ class Point {
   bool operator==(const Point& other) const;
   bool operator!=(const Point& other) const { return !(*this == other); }
 
-  void Write(uint8_t* dest) const;
+  void Write(uint8_t* dest, std::size_t dest_size = ByteSize()) const;
 
   void Print() const { ec_print(m_internal); }
 

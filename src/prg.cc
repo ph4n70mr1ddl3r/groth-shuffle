@@ -76,6 +76,22 @@ inline static void aes128_enc(__m128i* key_schedule, uint8_t* pt, uint8_t* ct) {
 }
 
 shf::Prg::Prg() {
+#if defined(_WIN32) || defined(_WIN64)
+  std::uint8_t seed[SeedSize()];
+  HCRYPTPROV hProv = 0;
+  if (!CryptAcquireContextA(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
+    throw std::runtime_error("Failed to acquire cryptographic context for PRG seed");
+  }
+
+  if (!CryptGenRandom(hProv, static_cast<DWORD>(SeedSize()), seed)) {
+    CryptReleaseContext(hProv, 0);
+    throw std::runtime_error("Failed to generate random seed");
+  }
+
+  std::memcpy(m_seed, seed, SeedSize());
+  secure_clear(seed, SeedSize());
+  CryptReleaseContext(hProv, 0);
+#else
   struct FileGuard {
     std::FILE* file;
     explicit FileGuard(std::FILE* f) : file(f) {}
@@ -105,6 +121,7 @@ shf::Prg::Prg() {
 
   std::memcpy(m_seed, seed, SeedSize());
   secure_clear(seed, SeedSize());
+#endif
   Init();
 }
 

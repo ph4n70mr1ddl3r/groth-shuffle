@@ -147,9 +147,12 @@ bool shf::Point::operator==(const shf::Point& other) const {
   return ec_cmp(m_internal, other.m_internal) == RLC_EQ;
 }
 
-void shf::Point::Write(uint8_t* dest) const {
+void shf::Point::Write(uint8_t* dest, std::size_t dest_size) const {
   if (!dest) {
     throw std::invalid_argument("destination buffer cannot be null");
+  }
+  if (dest_size < ByteSize()) {
+    throw std::invalid_argument("destination buffer too small for Point write");
   }
   if (IsInfinity())
     dest[0] = 1;
@@ -270,9 +273,12 @@ bool shf::Scalar::operator==(const shf::Scalar& other) const {
   return bn_cmp(m_internal, other.m_internal) == RLC_EQ;
 }
 
-void shf::Scalar::Write(uint8_t* dest) const {
+void shf::Scalar::Write(uint8_t* dest, std::size_t dest_size) const {
   if (!dest) {
     throw std::invalid_argument("destination buffer cannot be null");
+  }
+  if (dest_size < ByteSize()) {
+    throw std::invalid_argument("destination buffer too small for Scalar write");
   }
   bn_write_bin(dest, ByteSize(), m_internal);
 }
