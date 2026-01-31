@@ -67,6 +67,10 @@ shf::Point shf::Point::Read(const uint8_t* bytes) {
     ec_set_infty(p.m_internal);
   } else if (bytes[0] == 0) {
     ec_read_bin(p.m_internal, bytes + 1, ByteSize() - 1);
+    // Validate that the decoded point is actually on the curve
+    if (ec_on_curve(p.m_internal) != 1) {
+      throw std::runtime_error("decoded point is not on the curve");
+    }
   } else {
     throw std::invalid_argument("invalid point encoding");
   }
@@ -90,7 +94,7 @@ shf::Point::Point(const shf::Point& other) {
 }
 
 shf::Point::Point(shf::Point&& other) noexcept {
-  ec_copy(m_internal, other.m_internal);
+  std::memcpy(m_internal, other.m_internal, sizeof(ec_t));
   ec_set_infty(other.m_internal);
 }
 
@@ -103,7 +107,7 @@ shf::Point& shf::Point::operator=(const shf::Point& other) {
 
 shf::Point& shf::Point::operator=(shf::Point&& other) noexcept {
   if (this != &other) {
-    ec_copy(m_internal, other.m_internal);
+    std::memcpy(m_internal, other.m_internal, sizeof(ec_t));
     ec_set_infty(other.m_internal);
   }
   return *this;
@@ -144,6 +148,9 @@ bool shf::Point::operator==(const shf::Point& other) const {
 }
 
 void shf::Point::Write(uint8_t* dest) const {
+  if (!dest) {
+    throw std::invalid_argument("destination buffer cannot be null");
+  }
   if (IsInfinity())
     dest[0] = 1;
   else {
@@ -169,7 +176,7 @@ shf::Scalar::Scalar(const shf::Scalar& other) {
 }
 
 shf::Scalar::Scalar(shf::Scalar&& other) noexcept {
-  bn_copy(m_internal, other.m_internal);
+  std::memcpy(m_internal, other.m_internal, sizeof(bn_t));
   bn_zero(other.m_internal);
 }
 
@@ -182,7 +189,7 @@ shf::Scalar& shf::Scalar::operator=(const shf::Scalar& other) {
 
 shf::Scalar& shf::Scalar::operator=(shf::Scalar&& other) noexcept {
   if (this != &other) {
-    bn_copy(m_internal, other.m_internal);
+    std::memcpy(m_internal, other.m_internal, sizeof(bn_t));
     bn_zero(other.m_internal);
   }
   return *this;
@@ -264,6 +271,9 @@ bool shf::Scalar::operator==(const shf::Scalar& other) const {
 }
 
 void shf::Scalar::Write(uint8_t* dest) const {
+  if (!dest) {
+    throw std::invalid_argument("destination buffer cannot be null");
+  }
   bn_write_bin(dest, ByteSize(), m_internal);
 }
 

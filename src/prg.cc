@@ -27,6 +27,8 @@ static inline void secure_clear(void* ptr, std::size_t size) {
 // generation. The implementation securely wipes sensitive data from memory.
 /* https://github.com/sebastien-riou/aes-brute-force */
 
+static constexpr uint64_t PRG_DOMAIN_SEPARATOR = 0x0123456789ABCDEFULL;
+
 #define DO_ENC_BLOCK(m, k)              \
   do {                                  \
     m = _mm_xor_si128(m, k[0]);         \
@@ -115,7 +117,7 @@ shf::Prg::Prg(const uint8_t* seed) {
 }
 
 static inline __m128i CreateMask(const long counter) {
-  return _mm_set_epi64x(0x0123456789ABCDEF, counter);
+  return _mm_set_epi64x(PRG_DOMAIN_SEPARATOR, counter);
 }
 
 void shf::Prg::Fill(uint8_t* dest, std::size_t n) {

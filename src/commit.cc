@@ -2,9 +2,16 @@
 
 #include <stdexcept>
 
+static constexpr std::size_t MAX_COMMIT_KEY_SIZE = 10000;
+
 shf::CommitKey shf::CreateCommitKey(const std::size_t size) {
   if (size == 0) {
     throw std::invalid_argument("Cannot create a commitment key of size 0");
+  }
+  if (size > MAX_COMMIT_KEY_SIZE) {
+    throw std::invalid_argument("Commitment key size too large: " +
+                              std::to_string(size) +
+                              " (max: " + std::to_string(MAX_COMMIT_KEY_SIZE) + ")");
   }
 
   CommitKey ck;

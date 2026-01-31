@@ -153,7 +153,8 @@ bool shf::VerifyProof(const shf::CommitKey& ck, shf::Hash& hash,
   // Minimum 3 elements required for product proof verification:
   // - Need at least 3 elements to compute the verification equations correctly
   // - The proof construction requires elements at indices 0, 1, and n-1 (where n >= 3)
-  if (as.size() < 3 || bs.size() < 3) {
+  // - Vectors must have the same size
+  if (as.size() < 3 || bs.size() < 3 || as.size() != bs.size()) {
     return false;
   }
 

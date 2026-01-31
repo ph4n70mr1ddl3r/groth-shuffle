@@ -3,6 +3,8 @@
 #include <numeric>
 #include <stdexcept>
 
+static constexpr std::size_t MAX_PERMUTATION_SIZE = 1000000;
+
 namespace {
 
 inline std::vector<shf::Scalar> CreateRandomScalarVector(std::size_t size) {
@@ -19,8 +21,9 @@ inline std::vector<shf::Scalar> CreateRandomScalarVector(std::size_t size) {
 shf::Permutation shf::CreatePermutation(std::size_t size, shf::Prg& prg) {
   if (!size) return Permutation();
 
-  if (size > 1000000) {
-    throw std::invalid_argument("Permutation size too large: " + std::to_string(size));
+  if (size > MAX_PERMUTATION_SIZE) {
+    throw std::invalid_argument("Permutation size too large: " + std::to_string(size) +
+                              " (max: " + std::to_string(MAX_PERMUTATION_SIZE) + ")");
   }
 
   Permutation p(size);

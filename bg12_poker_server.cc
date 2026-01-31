@@ -5,7 +5,6 @@
 #include <vector>
 #include <map>
 #include <random>
-#include <cstring>
 #include <chrono>
 #include <fstream>
 #include <algorithm>
@@ -89,8 +88,8 @@ struct Card {
     Card(int s, int r, int idx, shf::Point p) : suit(s), rank(r), index(idx), point(p) {}
     
     static Card FromIndex(int idx, const shf::Point& p) {
-        int suit = idx / 13;
-        int rank = idx % 13 + 1;
+        int suit = idx / CARDS_PER_SUIT;
+        int rank = idx % CARDS_PER_SUIT + 1;
         return Card(suit, rank, idx, p);
     }
     
@@ -122,7 +121,12 @@ struct Player {
         uint8_t seed[SEED_SIZE_BYTES];
         GenerateRandomSeed(seed, sizeof(seed));
         prg = shf::Prg(seed);
-        std::memset(seed, 0, sizeof(seed));
+        // Use secure_clear instead of memset to prevent compiler optimization
+        // Note: secure_clear is defined in prg.cc via anonymous namespace
+        {
+            extern void secure_clear(void*, std::size_t);
+            secure_clear(seed, sizeof(seed));
+        }
 
         // Generate ElGamal keypair for encryption/decryption
         sk = shf::CreateSecretKey();
