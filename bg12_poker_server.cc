@@ -18,6 +18,7 @@
 #include "hash.h"
 #include "shuffler.h"
 #include "zkp.h"
+#include "utils.h"
 
 using namespace std::chrono;
 
@@ -36,19 +37,11 @@ static constexpr int SECTION_SEPARATOR_WIDTH = 70;
 static constexpr std::size_t SEED_SIZE_BYTES = 32; // 256 bits for cryptographic security
 
 static void GenerateRandomSeed(uint8_t* seed, std::size_t size) {
-    struct FileGuard {
-        std::FILE* file;
-        explicit FileGuard(std::FILE* f) : file(f) {}
-        ~FileGuard() { if (file) std::fclose(file); }
-        FileGuard(const FileGuard&) = delete;
-        FileGuard& operator=(const FileGuard&) = delete;
-    };
-
     std::FILE* urandom = std::fopen("/dev/urandom", "rb");
     if (!urandom) {
         throw std::runtime_error("Failed to open /dev/urandom for random seed generation");
     }
-    FileGuard guard(urandom);
+    shf::FileGuard guard(urandom);
 
     const std::size_t bytes_read = std::fread(seed, 1, size, urandom);
 
@@ -294,7 +287,8 @@ public:
         
         std::cout << "Original deck created:\n";
         for (std::size_t i = 0; i < PREVIEW_CARDS_COUNT && i < server.original_deck.size(); ++i) {
-            std::cout << "  Card " << std::setw(2) << static_cast<int>(i) << ": " << server.original_deck[i].ToString() << "\n";
+            const Card& card = server.original_deck[i];
+            std::cout << "  Card " << std::setw(2) << static_cast<int>(i) << ": " << card.ToString() << "\n";
         }
         std::cout << "  ... and " << (DECK_SIZE - PREVIEW_CARDS_COUNT) << " more cards\n";
         

@@ -366,6 +366,8 @@ void secure_clear(void* ptr, std::size_t size);
 }
 ```
 
+**Status:** ✅ FIXED - Created `src/utils.h` with FileGuard and updated both `bg12_poker_server.cc` and `src/prg.cc` to use it.
+
 ---
 
 ### Missing const Qualifiers
@@ -420,6 +422,8 @@ for (std::size_t i = 0; i < PREVIEW_CARDS_COUNT && i < server.original_deck.size
               << card.ToString() << "\n";
 }
 ```
+
+**Status:** ✅ FIXED - Updated loop to use const reference for card.
 
 ---
 

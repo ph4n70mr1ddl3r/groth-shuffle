@@ -1,4 +1,5 @@
 #include "prg.h"
+#include "utils.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -92,20 +93,12 @@ shf::Prg::Prg() {
   secure_clear(seed, SeedSize());
   CryptReleaseContext(hProv, 0);
 #else
-  struct FileGuard {
-    std::FILE* file;
-    explicit FileGuard(std::FILE* f) : file(f) {}
-    ~FileGuard() { if (file) std::fclose(file); }
-    FileGuard(const FileGuard&) = delete;
-    FileGuard& operator=(const FileGuard&) = delete;
-  };
-
   std::uint8_t seed[SeedSize()];
   std::FILE* urandom = std::fopen("/dev/urandom", "rb");
   if (!urandom) {
     throw std::runtime_error("Failed to open /dev/urandom for PRG seed");
   }
-  FileGuard guard(urandom);
+  shf::FileGuard guard(urandom);
 
   std::size_t total_read = 0;
   while (total_read < SeedSize()) {
