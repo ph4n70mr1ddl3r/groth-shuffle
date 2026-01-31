@@ -54,12 +54,10 @@ static void GenerateRandomSeed(uint8_t* seed, std::size_t size) {
     const std::size_t bytes_read = std::fread(seed, 1, size, urandom);
 
     if (bytes_read != size) {
+        std::memset(seed, 0, size);
         throw std::runtime_error("Failed to read sufficient random bytes from /dev/urandom: requested " +
                                 std::to_string(size) + " bytes, got " + std::to_string(bytes_read));
     }
-
-    // Additional security: Ensure we don't leave sensitive data in memory
-    // Note: In production, consider using libsodium or OpenSSL for crypto random
 }
 
 struct Timer {
@@ -97,7 +95,7 @@ struct Card {
     }
     
     std::string ToString() const {
-        static const std::array<std::string, NUM_SUITS> SUIT_SYMBOLS = {"♠", "♥", "♦", "♣"};
+        static constexpr std::array<std::string, NUM_SUITS> SUIT_SYMBOLS = {"♠", "♥", "♦", "♣"};
         const std::string suitStr = SUIT_SYMBOLS[static_cast<size_t>(suit)];
 
         std::string rankStr;
@@ -124,6 +122,7 @@ struct Player {
         uint8_t seed[SEED_SIZE_BYTES];
         GenerateRandomSeed(seed, sizeof(seed));
         prg = shf::Prg(seed);
+        std::memset(seed, 0, sizeof(seed));
 
         // Generate ElGamal keypair for encryption/decryption
         sk = shf::CreateSecretKey();
@@ -254,7 +253,7 @@ public:
         server.InitializeDeck();
     }
     
-    void PrintCard(const std::string& label, const Card& card) {
+    void PrintCard(const std::string& label, const Card& card) const {
         std::cout << label << ": " << card.ToString() << "\n";
     }
     
@@ -476,55 +475,42 @@ public:
         std::vector<Card> bob_hole;
 
         static const std::array<int, TEXAS_HOLDEM_TOTAL_HOLE_CARDS> DEAL_ORDER = {0, 1, 2, 3};
+        static const std::array<std::string, TEXAS_HOLDEM_TOTAL_HOLE_CARDS> PLAYER_NAMES = {"Alice", "Bob", "Alice", "Bob"};
         
         std::cout << "Dealing order: Alice, Bob, Alice, Bob\n\n";
         
-        for (std::size_t i = 0; i < TEXAS_HOLDEM_TOTAL_HOLE_CARDS; ++i) {
-            std::size_t pos = static_cast<std::size_t>(DEAL_ORDER[i]);
-            
+        auto deal_card = [&](std::size_t pos, const std::string& player_name, std::vector<Card>& hand) {
             std::cout << "--- Dealing position " << (pos + 1) << " ---\n";
             std::cout << "Server: Selects encrypted card at position " << pos << "\n";
             std::cout << "        (Server doesn't know which card it is)\n\n";
             
+            std::cout << "Server: Sends encrypted card to Alice for decryption\n";
+            server.SendToPlayer("Alice", {server.current_deck[pos]});
+            
+            std::cout << "Alice: Decrypts card with her secret key\n";
             Card revealed;
-            if (pos == 0 || pos == 2) {
-                std::cout << "Server: Sends encrypted card to Alice for decryption\n";
-                server.SendToPlayer("Alice", {server.current_deck[pos]});
-                
-                std::cout << "Alice: Decrypts card with her secret key\n";
-                {
-                    Timer t("Card decryption", timing.decrypt);
-                    shf::Point decrypted = shf::Decrypt(alice.sk, server.current_deck[pos]);
-                    
-                    revealed = server.FindCard(decrypted);
-                    if (revealed.index >= 0) {
-                        alice_hole.push_back(revealed);
-                    }
+            {
+                Timer t("Card decryption", timing.decrypt);
+                shf::Point decrypted = shf::Decrypt(alice.sk, server.current_deck[pos]);
+                revealed = server.FindCard(decrypted);
+                if (revealed.index >= 0) {
+                    hand.push_back(revealed);
                 }
-                std::cout << "        -> Alice's hole card: " << revealed.ToString() << "\n";
-                
-                std::cout << "Server: Sends revealed card value to Bob\n";
-                std::cout << "        [SERVER -> Bob] Card: " << revealed.ToString() << "\n";
-            } else {
-                std::cout << "Server: Sends encrypted card to Alice for decryption\n";
-                server.SendToPlayer("Alice", {server.current_deck[pos]});
-                
-                std::cout << "Alice: Decrypts card with her secret key\n";
-                {
-                    Timer t("Card decryption", timing.decrypt);
-                    shf::Point decrypted = shf::Decrypt(alice.sk, server.current_deck[pos]);
-                    
-                    revealed = server.FindCard(decrypted);
-                    if (revealed.index >= 0) {
-                        bob_hole.push_back(revealed);
-                    }
-                }
-                std::cout << "        -> Bob's hole card: " << revealed.ToString() << "\n";
-                
-                std::cout << "Server: Sends revealed card value to Bob\n";
-                std::cout << "        [SERVER -> Bob] Card: " << revealed.ToString() << "\n";
             }
+            std::cout << "        -> " << player_name << "'s hole card: " << revealed.ToString() << "\n";
+            
+            std::cout << "Server: Sends revealed card value to Bob\n";
+            std::cout << "        [SERVER -> Bob] Card: " << revealed.ToString() << "\n";
             std::cout << "\n";
+        };
+        
+        for (std::size_t i = 0; i < TEXAS_HOLDEM_TOTAL_HOLE_CARDS; ++i) {
+            std::size_t pos = static_cast<std::size_t>(DEAL_ORDER[i]);
+            if (i == 0 || i == 2) {
+                deal_card(pos, "Alice", alice_hole);
+            } else {
+                deal_card(pos, "Bob", bob_hole);
+            }
         }
         
         std::cout << "=== DEALT CARDS ===\n\n";
