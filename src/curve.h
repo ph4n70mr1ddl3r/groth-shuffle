@@ -83,9 +83,20 @@ class Scalar {
   ~Scalar();
 
   Scalar(const Scalar& other);
+  /**
+   * @brief Move constructor
+   * @param other The scalar to move from
+   * @note Moved-from objects are only safe to assign to or destroy
+   */
   Scalar(Scalar&& other) noexcept;
 
   Scalar& operator=(const Scalar& other);
+  /**
+   * @brief Move assignment operator
+   * @param other The scalar to move from
+   * @return Reference to this scalar
+   * @note Moved-from objects are only safe to assign to or destroy
+   */
   Scalar& operator=(Scalar&& other) noexcept;
 
   /**
@@ -183,9 +194,20 @@ class Point {
   ~Point();
 
   Point(const Point& other);
+  /**
+   * @brief Move constructor
+   * @param other The point to move from
+   * @note Moved-from objects are only safe to assign to or destroy
+   */
   Point(Point&& other) noexcept;
 
   Point& operator=(const Point& other);
+  /**
+   * @brief Move assignment operator
+   * @param other The point to move from
+   * @return Reference to this point
+   * @note Moved-from objects are only safe to assign to or destroy
+   */
   Point& operator=(Point&& other) noexcept;
 
   /**
