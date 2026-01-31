@@ -90,9 +90,6 @@ shf::Point::Point(const shf::Point& other) {
 }
 
 shf::Point::Point(shf::Point&& other) noexcept {
-  if (ec_new(m_internal) != RLC_OK) {
-    std::terminate();
-  }
   ec_copy(m_internal, other.m_internal);
   ec_set_infty(other.m_internal);
 }
@@ -172,9 +169,6 @@ shf::Scalar::Scalar(const shf::Scalar& other) {
 }
 
 shf::Scalar::Scalar(shf::Scalar&& other) noexcept {
-  if (bn_new(m_internal) != RLC_OK) {
-    std::terminate();
-  }
   bn_copy(m_internal, other.m_internal);
   bn_zero(other.m_internal);
 }
@@ -238,6 +232,16 @@ shf::Scalar shf::Scalar::operator-() const {
 shf::Scalar& shf::Scalar::operator+=(const shf::Scalar& other) {
   if (bn_add(m_internal, m_internal, other.m_internal) != RLC_OK) {
     throw std::runtime_error("Scalar addition failed");
+  }
+  if (bn_mod(m_internal, m_internal, k_curve_order) != RLC_OK) {
+    throw std::runtime_error("Scalar modulo failed");
+  }
+  return *this;
+}
+
+shf::Scalar& shf::Scalar::operator-=(const shf::Scalar& other) {
+  if (bn_sub(m_internal, m_internal, other.m_internal) != RLC_OK) {
+    throw std::runtime_error("Scalar subtraction failed");
   }
   if (bn_mod(m_internal, m_internal, k_curve_order) != RLC_OK) {
     throw std::runtime_error("Scalar modulo failed");

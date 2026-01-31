@@ -19,16 +19,20 @@ inline std::vector<shf::Scalar> CreateRandomScalarVector(std::size_t size) {
 shf::Permutation shf::CreatePermutation(std::size_t size, shf::Prg& prg) {
   if (!size) return Permutation();
 
+  if (size > 1000000) {
+    throw std::invalid_argument("Permutation size too large: " + std::to_string(size));
+  }
+
   Permutation p(size);
   std::iota(p.begin(), p.end(), 0);
 
-   std::vector<std::size_t> r(size);
-   prg.Fill(r);
+  std::vector<std::size_t> r(size);
+  prg.Fill(r);
 
-    for (std::size_t i = size, c = 0; i > 1; --i, ++c) {
-      std::size_t j = r[c] % i;
-      std::swap(p[i - 1], p[j]);
-    }
+  for (std::size_t i = size, c = 0; i > 1; --i, ++c) {
+    std::size_t j = r[c] % i;
+    std::swap(p[i - 1], p[j]);
+  }
 
   return p;
 }
@@ -38,8 +42,8 @@ static inline std::vector<shf::Scalar> PermutationAsScalars(
   std::vector<shf::Scalar> s;
   const std::size_t n = p.size();
   s.reserve(n);
-   for (std::size_t i = 0; i < n; ++i)
-     s.emplace_back(shf::Scalar::CreateFromInt(static_cast<unsigned int>(p[i])));
+  for (std::size_t i = 0; i < n; ++i)
+    s.emplace_back(shf::Scalar::CreateFromInt(static_cast<unsigned int>(p[i])));
   return s;
 }
 
@@ -84,10 +88,10 @@ static inline shf::Scalar ShuffleChallenge1(shf::Hash& hash,
                                             const std::vector<shf::Ctxt>& Es,
                                             const std::vector<shf::Ctxt>& pEs,
                                             const shf::Point& C) {
-   for (const auto& E : Es) hash.Update(E.U).Update(E.V);
-   for (const auto& E : pEs) hash.Update(E.U).Update(E.V);
-   hash.Update(C);
-   return shf::ScalarFromHash(hash);
+  for (const auto& E : Es) hash.Update(E.U).Update(E.V);
+  for (const auto& E : pEs) hash.Update(E.U).Update(E.V);
+  hash.Update(C);
+  return shf::ScalarFromHash(hash);
 }
 
 static inline shf::Scalar ShuffleChallenge2(shf::Hash& hash, const shf::Scalar& c,
@@ -161,19 +165,19 @@ static inline shf::Point CommitConstantNoRandomness(const shf::CommitKey& ck,
 }
 
 bool shf::Shuffler::VerifyShuffle(const std::vector<shf::Ctxt>& ctxts,
-                                   const shf::ShuffleP& proof, shf::Hash& hash) {
-   if (ctxts.empty()) throw std::invalid_argument("ciphertexts cannot be empty");
-   if (ctxts.size() != proof.permuted.size()) return false;
+                                   const shf::ShuffleP& proof, shf::Hash& hash) const {
+  if (ctxts.empty()) throw std::invalid_argument("ciphertexts cannot be empty");
+  if (ctxts.size() != proof.permuted.size()) return false;
 
-   const std::size_t n = ctxts.size();
-   // Security check: Ensure n doesn't exceed commitment key size
-   if (n > m_ck.G.size()) {
-       return false;
-   }
+  const std::size_t n = ctxts.size();
+  // Security check: Ensure n doesn't exceed commitment key size
+  if (n > m_ck.G.size()) {
+    return false;
+  }
 
-   const Scalar x = ShuffleChallenge1(hash, ctxts, proof.permuted, proof.Ca);
-   const Scalar y = ShuffleChallenge2(hash, x, proof.Cb);
-   const Scalar z = ShuffleChallenge3(hash, y);
+  const Scalar x = ShuffleChallenge1(hash, ctxts, proof.permuted, proof.Ca);
+  const Scalar y = ShuffleChallenge2(hash, x, proof.Cb);
+  const Scalar z = ShuffleChallenge3(hash, y);
 
   const Point Cz = CommitConstantNoRandomness(m_ck, -z);
   const Point Cd = y * proof.Ca + proof.Cb;
@@ -184,7 +188,7 @@ bool shf::Shuffler::VerifyShuffle(const std::vector<shf::Ctxt>& ctxts,
   Scalar prod = x - z;
   for (std::size_t i = 1; i < n; ++i) {
     xexp.emplace_back(xexp[i - 1] * x);
-     prod *= Scalar::CreateFromInt(static_cast<unsigned int>(i)) * y + xexp[i] - z;
+    prod *= Scalar::CreateFromInt(static_cast<unsigned int>(i)) * y + xexp[i] - z;
   }
 
   const ProductP proof0 = proof.product_proof;

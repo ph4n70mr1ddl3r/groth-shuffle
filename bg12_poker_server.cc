@@ -316,6 +316,7 @@ public:
         std::cout << "Alice can later decrypt to reveal cards.\n\n";
         
         std::vector<shf::Ctxt> encrypted_deck;
+        encrypted_deck.reserve(DECK_SIZE);
         
         {
             Timer t("Alice encrypt " + std::to_string(DECK_SIZE) + " cards", timing.alice_encrypt);
@@ -376,6 +377,8 @@ public:
         step.output_cards = proof.permuted;
         step.proof = proof;
         step.verified = verified;
+        step.prove_time = timing.bob_shuffle_prove.back();
+        step.verify_time = timing.bob_shuffle_verify.back();
         shuffle_history.push_back(step);
         
         server.current_deck = proof.permuted;
@@ -426,6 +429,8 @@ public:
         step.output_cards = proof2.permuted;
         step.proof = proof2;
         step.verified = verified2;
+        step.prove_time = timing.alice_shuffle_prove.back();
+        step.verify_time = timing.alice_shuffle_verify.back();
         shuffle_history.push_back(step);
         
         server.current_deck = proof2.permuted;
@@ -472,7 +477,9 @@ public:
         std::cout << "Bob receives decrypted values from server.\n\n";
         
         std::vector<Card> alice_hole;
+        alice_hole.reserve(TEXAS_HOLDEM_HOLE_CARDS);
         std::vector<Card> bob_hole;
+        bob_hole.reserve(TEXAS_HOLDEM_HOLE_CARDS);
 
         static const std::array<int, TEXAS_HOLDEM_TOTAL_HOLE_CARDS> DEAL_ORDER = {0, 1, 2, 3};
         static const std::array<std::string, TEXAS_HOLDEM_TOTAL_HOLE_CARDS> PLAYER_NAMES = {"Alice", "Bob", "Alice", "Bob"};
@@ -541,6 +548,7 @@ public:
         std::cout << "NO direct player-to-player communication - all via server.\n\n";
         
         std::vector<Card> revealed_cards;
+        revealed_cards.reserve(PREVIEW_CARDS_COUNT);
         
         std::cout << "Revealing first 5 cards of the deck:\n\n";
 
@@ -598,14 +606,20 @@ public:
 };
 
 int main() {
-    shf::CurveInit();
+    try {
+        shf::CurveInit();
 
-    std::cout << "\nInitializing Server-Based Poker Simulation...\n\n";
+        std::cout << "\nInitializing Server-Based Poker Simulation...\n\n";
 
-    PokerServerSimulation sim;
-    sim.RunProtocol();
+        PokerServerSimulation sim;
+        sim.RunProtocol();
 
-    shf::CurveCleanup();
+        shf::CurveCleanup();
 
-    return 0;
+        return 0;
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        shf::CurveCleanup();
+        return 1;
+    }
 }

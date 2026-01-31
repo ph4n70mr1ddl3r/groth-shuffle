@@ -107,6 +107,9 @@ shf::Prg::Prg() {
 }
 
 shf::Prg::Prg(const uint8_t* seed) {
+  if (!seed) {
+    throw std::invalid_argument("seed cannot be null");
+  }
   std::memcpy(m_seed, seed, SeedSize());
   Init();
 }
@@ -116,6 +119,9 @@ static inline __m128i CreateMask(const long counter) {
 }
 
 void shf::Prg::Fill(uint8_t* dest, std::size_t n) {
+  if (!dest) {
+    throw std::invalid_argument("destination cannot be null");
+  }
   if (!n) return;
 
   std::size_t nblocks = n / BlockSize();
@@ -134,6 +140,7 @@ void shf::Prg::Fill(uint8_t* dest, std::size_t n) {
   }
 
   std::memcpy(dest, out.data(), n);
+  secure_clear(out.data(), out.size());
 }
 
 void shf::Prg::Update() { m_counter++; }

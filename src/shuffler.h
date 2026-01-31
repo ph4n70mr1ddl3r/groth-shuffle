@@ -75,7 +75,7 @@ class Shuffler {
    * @return true if the shuffle was correct and false otherwise.
    */
   bool VerifyShuffle(const std::vector<Ctxt>& ctxts, const ShuffleP& proof,
-                     Hash& hash);
+                     Hash& hash) const;
 
  private:
   PublicKey m_pk;
