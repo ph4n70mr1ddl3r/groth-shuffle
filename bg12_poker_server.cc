@@ -5,52 +5,20 @@
 #include <vector>
 #include <map>
 #include <random>
+#include <cstring>
 #include <chrono>
 #include <fstream>
 #include <algorithm>
-#include <cstdint>
-#include <array>
 
-#include "prg.h"
 #include "curve.h"
 #include "cipher.h"
 #include "commit.h"
 #include "hash.h"
+#include "prg.h"
 #include "shuffler.h"
 #include "zkp.h"
-#include "utils.h"
 
 using namespace std::chrono;
-
-static constexpr int DECK_SIZE = 52;
-static constexpr int CARDS_PER_SUIT = 13;
-static constexpr int NUM_SUITS = 4;
-static constexpr int TEXAS_HOLDEM_HOLE_CARDS = 2;
-static constexpr int TEXAS_HOLDEM_TOTAL_HOLE_CARDS = 4;
-
-// Display constants
-static constexpr int PREVIEW_CARDS_COUNT = 5;
-static constexpr int TIMING_TABLE_WIDTH = 60;
-static constexpr int SECTION_SEPARATOR_WIDTH = 70;
-
-// Security constants
-static constexpr std::size_t SEED_SIZE_BYTES = 32; // 256 bits for cryptographic security
-
-static void GenerateRandomSeed(uint8_t* seed, std::size_t size) {
-    std::FILE* urandom = std::fopen("/dev/urandom", "rb");
-    if (!urandom) {
-        throw std::runtime_error("Failed to open /dev/urandom for random seed generation");
-    }
-    shf::FileGuard guard(urandom);
-
-    const std::size_t bytes_read = std::fread(seed, 1, size, urandom);
-
-    if (bytes_read != size) {
-        shf::secure_clear(seed, size);
-        throw std::runtime_error("Failed to read sufficient random bytes from /dev/urandom: requested " +
-                                std::to_string(size) + " bytes, got " + std::to_string(bytes_read));
-    }
-}
 
 struct Timer {
     std::string name;
@@ -63,10 +31,9 @@ struct Timer {
     
     ~Timer() {
         auto end = high_resolution_clock::now();
-        auto duration_us = duration_cast<microseconds>(end - start).count();
-        double ms = static_cast<double>(duration_us) / 1000.0;
+        double ms = duration_cast<microseconds>(end - start).count() / 1000.0;
         times.push_back(ms);
-        std::cout << "  " << std::left << std::setw(30) << name << ": "
+        std::cout << "  " << std::left << std::setw(30) << name << ": " 
                   << std::right << std::setw(10) << std::fixed << std::setprecision(2) << ms << " ms\n";
     }
 };
@@ -81,15 +48,18 @@ struct Card {
     Card(int s, int r, int idx, shf::Point p) : suit(s), rank(r), index(idx), point(p) {}
     
     static Card FromIndex(int idx, const shf::Point& p) {
-        int suit = idx / CARDS_PER_SUIT;
-        int rank = idx % CARDS_PER_SUIT + 1;
+        int suit = idx / 13;
+        int rank = idx % 13 + 1;
         return Card(suit, rank, idx, p);
     }
     
     std::string ToString() const {
-        static constexpr std::array<std::string, NUM_SUITS> SUIT_SYMBOLS = {"♠", "♥", "♦", "♣"};
-        const std::string suitStr = SUIT_SYMBOLS[static_cast<size_t>(suit)];
-
+        std::string suitStr;
+        if (suit == 0) suitStr = "♠";
+        else if (suit == 1) suitStr = "♥";
+        else if (suit == 2) suitStr = "♦";
+        else suitStr = "♣";
+        
         std::string rankStr;
         if (rank == 1) rankStr = "A";
         else if (rank == 11) rankStr = "J";
@@ -107,23 +77,11 @@ struct Player {
     shf::PublicKey pk;
     shf::Prg prg;
     shf::CommitKey ck;
-
-    Player(std::string n) : name(n) {
-        // Generate cryptographically secure random seed for PRG
-        // Note: Each player gets their own independent random seed
-        uint8_t seed[SEED_SIZE_BYTES];
-        GenerateRandomSeed(seed, sizeof(seed));
-        prg = shf::Prg(seed);
-        // Use secure_clear instead of memset to prevent compiler optimization
-        shf::secure_clear(seed, sizeof(seed));
-
-        // Generate ElGamal keypair for encryption/decryption
+    
+    Player(std::string n, const uint8_t* seed) : name(n), prg(seed) {
         sk = shf::CreateSecretKey();
         pk = shf::CreatePublicKey(sk);
-
-        // Create commitment key for zero-knowledge proofs
-        // Size corresponds to maximum deck size
-        ck = shf::CreateCommitKey(DECK_SIZE);
+        ck = shf::CreateCommitKey(52);
     }
 };
 
@@ -143,7 +101,7 @@ struct Server {
     
     void InitializeDeck() {
         original_deck.clear();
-        for (int i = 0; i < DECK_SIZE; ++i) {
+        for (int i = 0; i < 52; ++i) {
             shf::Point p = shf::Point::CreateRandom();
             original_deck.push_back(Card::FromIndex(i, p));
         }
@@ -157,8 +115,8 @@ struct Server {
         std::cout << "  [" << player_name << " -> SERVER] Received " << deck.size() << " encrypted cards\n";
     }
     
-    Card FindCard(const shf::Point& p) const {
-        for (std::size_t j = 0; j < original_deck.size(); ++j) {
+    Card FindCard(const shf::Point& p) {
+        for (int j = 0; j < 52; ++j) {
             if (p == original_deck[j].point) {
                 return original_deck[j];
             }
@@ -187,15 +145,15 @@ struct TimingResults {
     std::vector<double> decrypt;
     
     void Print() {
-        std::cout << "\n" << std::string(TIMING_TABLE_WIDTH, '=') << "\n";
+        std::cout << "\n" << std::string(60, '=') << "\n";
         std::cout << "TIMING RESULTS\n";
-        std::cout << std::string(TIMING_TABLE_WIDTH, '=') << "\n\n";
+        std::cout << std::string(60, '=') << "\n\n";
         
         auto avg = [&](const std::vector<double>& v) -> double {
             if (v.empty()) return 0.0;
             double sum = 0;
             for (auto x : v) sum += x;
-            return sum / static_cast<double>(v.size());
+            return sum / v.size();
         };
         
         auto print_row = [&](const std::string& label, const std::vector<double>& v, int count) {
@@ -213,11 +171,11 @@ struct TimingResults {
                       << std::fixed << std::setprecision(2) << max_val << ") x" << count << "\n";
         };
         
-        std::cout << std::left << std::setw(35) << "Operation"
+        std::cout << std::left << std::setw(35) << "Operation" 
                   << std::right << std::setw(25) << "Average (min - max)\n";
-        std::cout << std::string(TIMING_TABLE_WIDTH, '-') << "\n";
+        std::cout << std::string(60, '-') << "\n";
         
-        print_row("Alice's Initial Encryption", alice_encrypt, DECK_SIZE);
+        print_row("Alice's Initial Encryption", alice_encrypt, 52);
         print_row("Bob's Shuffle (prove)", bob_shuffle_prove, 1);
         print_row("Bob's Shuffle (verify)", bob_shuffle_verify, 1);
         print_row("Alice's Shuffle (prove)", alice_shuffle_prove, 1);
@@ -225,8 +183,8 @@ struct TimingResults {
         print_row("Card Decryption", decrypt, 5);
         
         std::cout << "\n";
-        std::cout << "Total deck size: " << DECK_SIZE << " cards\n";
-        std::cout << "Encrypted deck size: " << (DECK_SIZE * sizeof(shf::Ctxt)) << " bytes\n";
+        std::cout << "Total deck size: 52 cards\n";
+        std::cout << "Encrypted deck size: " << (52 * sizeof(shf::Ctxt)) << " bytes\n";
         std::cout << "Proof size: ~" << (sizeof(shf::ShuffleP)) << " bytes\n";
     }
 };
@@ -241,12 +199,13 @@ private:
     TimingResults timing;
     
 public:
-    PokerServerSimulation() : alice("Alice"), bob("Bob") {
+    PokerServerSimulation() : alice("Alice", reinterpret_cast<const uint8_t*>("alice12345678901")), 
+                              bob("Bob", reinterpret_cast<const uint8_t*>("bob123456789012")) {
         server.SetKeys(alice, bob);
         server.InitializeDeck();
     }
     
-    void PrintCard(const std::string& label, const Card& card) const {
+    void PrintCard(const std::string& label, const Card& card) {
         std::cout << label << ": " << card.ToString() << "\n";
     }
     
@@ -277,20 +236,19 @@ public:
     }
     
     void Step1_ServerInitializes() {
-        std::cout << "\n" << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n";
+        std::cout << "\n" << std::string(70, '=') << "\n";
         std::cout << "STEP 1: SERVER INITIALIZES DECK\n";
-        std::cout << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n\n";
+        std::cout << std::string(70, '=') << "\n\n";
         
         std::cout << "Server creates a fresh deck of 52 cards.\n";
         std::cout << "Server knows the original order (for verification only).\n";
         std::cout << "Deck will be encrypted before leaving server's control.\n\n";
         
         std::cout << "Original deck created:\n";
-        for (std::size_t i = 0; i < PREVIEW_CARDS_COUNT && i < server.original_deck.size(); ++i) {
-            const Card& card = server.original_deck[i];
-            std::cout << "  Card " << std::setw(2) << static_cast<int>(i) << ": " << card.ToString() << "\n";
+        for (int i = 0; i < 5; ++i) {
+            std::cout << "  Card " << std::setw(2) << i << ": " << server.original_deck[i].ToString() << "\n";
         }
-        std::cout << "  ... and " << (DECK_SIZE - PREVIEW_CARDS_COUNT) << " more cards\n";
+        std::cout << "  ... and " << (52 - 5) << " more cards\n";
         
         std::cout << "\nState:\n";
         std::cout << "  Server knows: Original deck order\n";
@@ -299,9 +257,9 @@ public:
     }
     
     void Step2_AliceEncrypts() {
-        std::cout << "\n" << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n";
+        std::cout << "\n" << std::string(70, '=') << "\n";
         std::cout << "STEP 2: ALICE ENCRYPTS DECK (via Server)\n";
-        std::cout << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n\n";
+        std::cout << std::string(70, '=') << "\n\n";
         
         std::cout << "Server sends original deck to Alice (via secure channel).\n";
         server.SendToPlayer("Alice", {});
@@ -310,10 +268,9 @@ public:
         std::cout << "Alice can later decrypt to reveal cards.\n\n";
         
         std::vector<shf::Ctxt> encrypted_deck;
-        encrypted_deck.reserve(DECK_SIZE);
         
         {
-            Timer t("Alice encrypt " + std::to_string(DECK_SIZE) + " cards", timing.alice_encrypt);
+            Timer t("Alice encrypt 52 cards", timing.alice_encrypt);
             for (const auto& card : server.original_deck) {
                 shf::Ctxt c = shf::Encrypt(alice.pk, card.point);
                 encrypted_deck.push_back(c);
@@ -332,9 +289,9 @@ public:
     }
     
     void Step3_BobShuffles() {
-        std::cout << "\n" << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n";
+        std::cout << "\n" << std::string(70, '=') << "\n";
         std::cout << "STEP 3: BOB SHUFFLES (via Server)\n";
-        std::cout << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n\n";
+        std::cout << std::string(70, '=') << "\n\n";
         
         std::cout << "Server sends encrypted deck to Bob.\n";
         server.SendToPlayer("Bob", server.current_deck);
@@ -352,16 +309,15 @@ public:
             proof = shuffler.Shuffle(server.current_deck, hash);
         }
         std::cout << "\n";
-
+        
         std::cout << "Bob sends shuffled deck + proof to server.\n";
         server.ReceiveFromPlayer("Bob", proof.permuted);
-
+        
         std::cout << "\nServer requests Alice to verify Bob's proof...\n";
         bool verified;
         {
             Timer t("Bob shuffle verify", timing.bob_shuffle_verify);
-            shf::Hash verify_hash;
-            verified = shuffler.VerifyShuffle(server.current_deck, proof, verify_hash);
+            verified = shuffler.VerifyShuffle(server.current_deck, proof, hash);
         }
         std::cout << "Verification result: " << (verified ? "PASSED" : "FAILED") << "\n";
         
@@ -371,8 +327,6 @@ public:
         step.output_cards = proof.permuted;
         step.proof = proof;
         step.verified = verified;
-        step.prove_time = timing.bob_shuffle_prove.back();
-        step.verify_time = timing.bob_shuffle_verify.back();
         shuffle_history.push_back(step);
         
         server.current_deck = proof.permuted;
@@ -384,9 +338,9 @@ public:
     }
     
     void Step4_AliceShuffles() {
-        std::cout << "\n" << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n";
+        std::cout << "\n" << std::string(70, '=') << "\n";
         std::cout << "STEP 4: ALICE SHUFFLES (via Server)\n";
-        std::cout << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n\n";
+        std::cout << std::string(70, '=') << "\n\n";
         
         std::cout << "Server sends Bob's shuffled deck to Alice.\n";
         server.SendToPlayer("Alice", server.current_deck);
@@ -404,16 +358,15 @@ public:
             proof2 = shuffler2.Shuffle(server.current_deck, hash2);
         }
         std::cout << "\n";
-
+        
         std::cout << "Alice sends shuffled deck + proof to server.\n";
         server.ReceiveFromPlayer("Alice", proof2.permuted);
-
+        
         std::cout << "\nServer requests Bob to verify Alice's proof...\n";
         bool verified2;
         {
             Timer t("Alice shuffle verify", timing.alice_shuffle_verify);
-            shf::Hash verify_hash2;
-            verified2 = shuffler2.VerifyShuffle(server.current_deck, proof2, verify_hash2);
+            verified2 = shuffler2.VerifyShuffle(server.current_deck, proof2, hash2);
         }
         std::cout << "Verification result: " << (verified2 ? "PASSED" : "FAILED") << "\n";
         
@@ -423,8 +376,6 @@ public:
         step.output_cards = proof2.permuted;
         step.proof = proof2;
         step.verified = verified2;
-        step.prove_time = timing.alice_shuffle_prove.back();
-        step.verify_time = timing.alice_shuffle_verify.back();
         shuffle_history.push_back(step);
         
         server.current_deck = proof2.permuted;
@@ -437,9 +388,9 @@ public:
     }
     
     void Step5_ServerHoldsDeck() {
-        std::cout << "\n" << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n";
+        std::cout << "\n" << std::string(70, '=') << "\n";
         std::cout << "STEP 5: SERVER HOLDS FINAL SHUFFLED DECK\n";
-        std::cout << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n\n";
+        std::cout << std::string(70, '=') << "\n\n";
         
         std::cout << "Both players have shuffled exactly ONCE.\n";
         std::cout << "Server holds the final encrypted deck.\n";
@@ -462,56 +413,67 @@ public:
     }
     
     void Step6_DealCards() {
-        std::cout << "\n" << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n";
+        std::cout << "\n" << std::string(70, '=') << "\n";
         std::cout << "STEP 6: SERVER DEALS CARDS (Texas Hold'em)\n";
-        std::cout << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n\n";
+        std::cout << std::string(70, '=') << "\n\n";
         
         std::cout << "Server will deal hole cards to both players.\n";
         std::cout << "Alice decrypts cards for both players (server coordinates).\n";
         std::cout << "Bob receives decrypted values from server.\n\n";
         
         std::vector<Card> alice_hole;
-        alice_hole.reserve(TEXAS_HOLDEM_HOLE_CARDS);
         std::vector<Card> bob_hole;
-        bob_hole.reserve(TEXAS_HOLDEM_HOLE_CARDS);
-
-        static const std::array<int, TEXAS_HOLDEM_TOTAL_HOLE_CARDS> DEAL_ORDER = {0, 1, 2, 3};
-        static const std::array<std::string, TEXAS_HOLDEM_TOTAL_HOLE_CARDS> PLAYER_NAMES = {"Alice", "Bob", "Alice", "Bob"};
+        
+        int deal_order[] = {0, 1, 2, 3};
         
         std::cout << "Dealing order: Alice, Bob, Alice, Bob\n\n";
         
-        auto deal_card = [&](std::size_t pos, const std::string& player_name, std::vector<Card>& hand) {
+        for (int i = 0; i < 4; ++i) {
+            int pos = deal_order[i];
+            
             std::cout << "--- Dealing position " << (pos + 1) << " ---\n";
             std::cout << "Server: Selects encrypted card at position " << pos << "\n";
             std::cout << "        (Server doesn't know which card it is)\n\n";
             
-            std::cout << "Server: Sends encrypted card to Alice for decryption\n";
-            server.SendToPlayer("Alice", {server.current_deck[pos]});
-            
-            std::cout << "Alice: Decrypts card with her secret key\n";
             Card revealed;
-            {
-                Timer t("Card decryption", timing.decrypt);
-                shf::Point decrypted = shf::Decrypt(alice.sk, server.current_deck[pos]);
-                revealed = server.FindCard(decrypted);
-                if (revealed.index >= 0) {
-                    hand.push_back(revealed);
+            if (pos == 0 || pos == 2) {
+                std::cout << "Server: Sends encrypted card to Alice for decryption\n";
+                server.SendToPlayer("Alice", {server.current_deck[pos]});
+                
+                std::cout << "Alice: Decrypts card with her secret key\n";
+                {
+                    Timer t("Card decryption", timing.decrypt);
+                    shf::Point decrypted = shf::Decrypt(alice.sk, server.current_deck[pos]);
+                    
+                    revealed = server.FindCard(decrypted);
+                    if (revealed.index >= 0) {
+                        alice_hole.push_back(revealed);
+                    }
                 }
-            }
-            std::cout << "        -> " << player_name << "'s hole card: " << revealed.ToString() << "\n";
-            
-            std::cout << "Server: Sends revealed card value to Bob\n";
-            std::cout << "        [SERVER -> Bob] Card: " << revealed.ToString() << "\n";
-            std::cout << "\n";
-        };
-        
-        for (std::size_t i = 0; i < TEXAS_HOLDEM_TOTAL_HOLE_CARDS; ++i) {
-            std::size_t pos = static_cast<std::size_t>(DEAL_ORDER[i]);
-            if (i == 0 || i == 2) {
-                deal_card(pos, "Alice", alice_hole);
+                std::cout << "        -> Alice's hole card: " << revealed.ToString() << "\n";
+                
+                std::cout << "Server: Sends revealed card value to Bob\n";
+                std::cout << "        [SERVER -> Bob] Card: " << revealed.ToString() << "\n";
             } else {
-                deal_card(pos, "Bob", bob_hole);
+                std::cout << "Server: Sends encrypted card to Alice for decryption\n";
+                server.SendToPlayer("Alice", {server.current_deck[pos]});
+                
+                std::cout << "Alice: Decrypts card with her secret key\n";
+                {
+                    Timer t("Card decryption", timing.decrypt);
+                    shf::Point decrypted = shf::Decrypt(alice.sk, server.current_deck[pos]);
+                    
+                    revealed = server.FindCard(decrypted);
+                    if (revealed.index >= 0) {
+                        bob_hole.push_back(revealed);
+                    }
+                }
+                std::cout << "        -> Bob's hole card: " << revealed.ToString() << "\n";
+                
+                std::cout << "Server: Sends revealed card value to Bob\n";
+                std::cout << "        [SERVER -> Bob] Card: " << revealed.ToString() << "\n";
             }
+            std::cout << "\n";
         }
         
         std::cout << "=== DEALT CARDS ===\n\n";
@@ -532,9 +494,9 @@ public:
     }
     
     void Step7_CooperativeRevelation() {
-        std::cout << "\n" << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n";
+        std::cout << "\n" << std::string(70, '=') << "\n";
         std::cout << "STEP 7: COOPERATIVE REVELATION (Full Deck)\n";
-        std::cout << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n\n";
+        std::cout << std::string(70, '=') << "\n\n";
         
         std::cout << "Server coordinates revealing the full deck.\n";
         std::cout << "Alice decrypts cards, server verifies against original.\n";
@@ -542,11 +504,10 @@ public:
         std::cout << "NO direct player-to-player communication - all via server.\n\n";
         
         std::vector<Card> revealed_cards;
-        revealed_cards.reserve(PREVIEW_CARDS_COUNT);
         
         std::cout << "Revealing first 5 cards of the deck:\n\n";
-
-        for (std::size_t i = 0; i < 5 && i < server.current_deck.size(); ++i) {
+        
+        for (int i = 0; i < 5; ++i) {
             std::cout << "--- Revealing card " << (i + 1) << " ---\n";
             
             std::cout << "Server: Requests decryption of position " << i << " from Alice\n";
@@ -574,7 +535,7 @@ public:
         
         std::cout << "=== PARTIALLY REVEALED DECK ===\n\n";
         std::cout << "First 5 cards:\n";
-        for (std::size_t i = 0; i < revealed_cards.size(); ++i) {
+        for (int i = 0; i < 5; ++i) {
             std::cout << "  Position " << i << ": " << revealed_cards[i].ToString() << "\n";
         }
         
@@ -586,9 +547,9 @@ public:
         std::cout << "  - Bob learns cards from server (not Alice directly)\n";
         std::cout << "  - Alice controls decryption, server distributes results\n";
         
-        std::cout << "\n" << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n";
+        std::cout << "\n" << std::string(70, '=') << "\n";
         std::cout << "PROTOCOL COMPLETE\n";
-        std::cout << std::string(SECTION_SEPARATOR_WIDTH, '=') << "\n\n";
+        std::cout << std::string(70, '=') << "\n\n";
         
         std::cout << "Key properties demonstrated:\n";
         std::cout << "  ✓ Server Coordination: All communication via server\n";
@@ -600,20 +561,12 @@ public:
 };
 
 int main() {
-    try {
-        shf::CurveInit();
-
-        std::cout << "\nInitializing Server-Based Poker Simulation...\n\n";
-
-        PokerServerSimulation sim;
-        sim.RunProtocol();
-
-        shf::CurveCleanup();
-
-        return 0;
-    } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-        shf::CurveCleanup();
-        return 1;
-    }
+    shf::CurveInit();
+    
+    std::cout << "\nInitializing Server-Based Poker Simulation...\n\n";
+    
+    PokerServerSimulation sim;
+    sim.RunProtocol();
+    
+    return 0;
 }

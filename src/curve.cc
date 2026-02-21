@@ -1,53 +1,31 @@
 #include "curve.h"
 
+#include <iostream>
 #include <stdexcept>
-#include <mutex>
 
-static std::mutex k_init_mutex;
 static int k_relic_initialized = 0;
 static bn_t k_curve_order;
 
 void shf::CurveInit() {
-  std::lock_guard<std::mutex> lock(k_init_mutex);
   if (k_relic_initialized) {
     return;
   }
 
   core_init();
   if (err_get_code() != RLC_OK) {
-    throw std::runtime_error("Failed to initialize Relic cryptographic library core");
+    throw std::runtime_error("relic core_init() failed");
   }
 
-  TRY {
-    ec_param_set_any();
-  }
+  TRY { ec_param_set_any(); }
   CATCH_ANY {
     core_clean();
-    throw std::runtime_error("Failed to set elliptic curve parameters in Relic library");
+    throw std::runtime_error("relic ec_param_set_any() failed");
   }
-  END_TRY
 
-  if (bn_new(k_curve_order) != RLC_OK) {
-    core_clean();
-    throw std::runtime_error("Failed to allocate curve order big number");
-  }
+  bn_new(k_curve_order);
   ec_curve_get_ord(k_curve_order);
 
   k_relic_initialized = 1;
-}
-
-void shf::CurveCleanup() {
-  std::lock_guard<std::mutex> lock(k_init_mutex);
-  if (!k_relic_initialized) {
-    return;
-  }
-  bn_free(k_curve_order);
-  core_clean();
-  k_relic_initialized = 0;
-}
-
-const bn_t* shf::GetCurveOrder() {
-  return &k_curve_order;
 }
 
 shf::Point shf::Point::Generator() {
@@ -64,56 +42,34 @@ shf::Point shf::Point::CreateRandom() {
 
 shf::Point shf::Point::Read(const uint8_t* bytes) {
   Point p;
-  if (!bytes) {
-    throw std::invalid_argument("bytes cannot be null");
-  }
-  if (bytes[0] == 1) {
-    ec_set_infty(p.m_internal);
-  } else if (bytes[0] == 0) {
-    ec_read_bin(p.m_internal, bytes + 1, ByteSize() - 1);
-    // Validate that the decoded point is actually on the curve
-    if (ec_on_curve(p.m_internal) != 1) {
-      throw std::runtime_error("decoded point is not on the curve");
-    }
-  } else {
-    throw std::invalid_argument("invalid point encoding");
-  }
+  if (!bytes[0]) ec_read_bin(p.m_internal, bytes + 1, ByteSize() - 1);
   return p;
 }
 
 shf::Point::Point() {
-  if (ec_new(m_internal) != RLC_OK) {
-    throw std::runtime_error("Failed to allocate elliptic curve point");
-  }
+  ec_new(m_internal);
   ec_set_infty(m_internal);
 }
 
 shf::Point::~Point() { ec_free(m_internal); }
 
 shf::Point::Point(const shf::Point& other) {
-  if (ec_new(m_internal) != RLC_OK) {
-    throw std::runtime_error("Failed to allocate elliptic curve point");
-  }
+  ec_new(m_internal);
   ec_copy(m_internal, other.m_internal);
 }
 
-shf::Point::Point(shf::Point&& other) noexcept {
-  std::memcpy(m_internal, other.m_internal, sizeof(ec_t));
-  ec_set_infty(other.m_internal);
+shf::Point::Point(shf::Point&& other) {
+  ec_new(m_internal);
+  ec_copy(m_internal, other.m_internal);
 }
 
 shf::Point& shf::Point::operator=(const shf::Point& other) {
-  if (this != &other) {
-    ec_copy(m_internal, other.m_internal);
-  }
+  ec_copy(m_internal, other.m_internal);
   return *this;
 }
 
-shf::Point& shf::Point::operator=(shf::Point&& other) noexcept {
-  if (this != &other) {
-    std::memcpy(m_internal, other.m_internal, sizeof(ec_t));
-    ec_set_infty(other.m_internal);
-  }
+shf::Point& shf::Point::operator=(shf::Point&& other) {
+  ec_copy(m_internal, other.m_internal);
   return *this;
 }
 
@@ -151,13 +107,7 @@ bool shf::Point::operator==(const shf::Point& other) const {
   return ec_cmp(m_internal, other.m_internal) == RLC_EQ;
 }
 
-void shf::Point::Write(uint8_t* dest, std::size_t dest_size) const {
-  if (!dest) {
-    throw std::invalid_argument("destination buffer cannot be null");
-  }
-  if (dest_size < ByteSize()) {
-    throw std::invalid_argument("destination buffer too small for Point write");
-  }
+void shf::Point::Write(uint8_t* dest) const {
   if (IsInfinity())
     dest[0] = 1;
   else {
@@ -167,38 +117,29 @@ void shf::Point::Write(uint8_t* dest, std::size_t dest_size) const {
 }
 
 shf::Scalar::Scalar() {
-  if (bn_new(m_internal) != RLC_OK) {
-    throw std::runtime_error("Failed to allocate big number");
-  }
+  bn_new(m_internal);
   bn_zero(m_internal);
 }
 
 shf::Scalar::~Scalar() { bn_free(m_internal); }
 
 shf::Scalar::Scalar(const shf::Scalar& other) {
-  if (bn_new(m_internal) != RLC_OK) {
-    throw std::runtime_error("Failed to allocate big number");
-  }
+  bn_new(m_internal);
   bn_copy(m_internal, other.m_internal);
 }
 
-shf::Scalar::Scalar(shf::Scalar&& other) noexcept {
-  std::memcpy(m_internal, other.m_internal, sizeof(bn_t));
-  bn_zero(other.m_internal);
+shf::Scalar::Scalar(shf::Scalar&& other) {
+  bn_new(m_internal);
+  bn_copy(m_internal, other.m_internal);
 }
 
 shf::Scalar& shf::Scalar::operator=(const shf::Scalar& other) {
-  if (this != &other) {
-    bn_copy(m_internal, other.m_internal);
-  }
+  bn_copy(m_internal, other.m_internal);
   return *this;
 }
 
-shf::Scalar& shf::Scalar::operator=(shf::Scalar&& other) noexcept {
-  if (this != &other) {
-    std::memcpy(m_internal, other.m_internal, sizeof(bn_t));
-    bn_zero(other.m_internal);
-  }
+shf::Scalar& shf::Scalar::operator=(shf::Scalar&& other) {
+  bn_copy(m_internal, other.m_internal);
   return *this;
 }
 
@@ -206,34 +147,22 @@ bool shf::Scalar::IsZero() const { return bn_is_zero(m_internal) == 1; }
 
 shf::Scalar shf::Scalar::operator+(const shf::Scalar& other) const {
   Scalar r;
-  if (bn_add(r.m_internal, m_internal, other.m_internal) != RLC_OK) {
-    throw std::runtime_error("Scalar addition failed");
-  }
-  if (bn_mod(r.m_internal, r.m_internal, k_curve_order) != RLC_OK) {
-    throw std::runtime_error("Scalar modulo failed");
-  }
+  bn_add(r.m_internal, m_internal, other.m_internal);
+  bn_mod(r.m_internal, r.m_internal, k_curve_order);
   return r;
 }
 
 shf::Scalar shf::Scalar::operator-(const shf::Scalar& other) const {
   Scalar r;
-  if (bn_sub(r.m_internal, m_internal, other.m_internal) != RLC_OK) {
-    throw std::runtime_error("Scalar subtraction failed");
-  }
-  if (bn_mod(r.m_internal, r.m_internal, k_curve_order) != RLC_OK) {
-    throw std::runtime_error("Scalar modulo failed");
-  }
+  bn_sub(r.m_internal, m_internal, other.m_internal);
+  bn_mod(r.m_internal, r.m_internal, k_curve_order);
   return r;
 }
 
 shf::Scalar shf::Scalar::operator*(const shf::Scalar& other) const {
   Scalar r;
-  if (bn_mul(r.m_internal, m_internal, other.m_internal) != RLC_OK) {
-    throw std::runtime_error("Scalar multiplication failed");
-  }
-  if (bn_mod(r.m_internal, r.m_internal, k_curve_order) != RLC_OK) {
-    throw std::runtime_error("Scalar modulo failed");
-  }
+  bn_mul(r.m_internal, m_internal, other.m_internal);
+  bn_mod(r.m_internal, r.m_internal, k_curve_order);
   return r;
 }
 
@@ -244,32 +173,14 @@ shf::Scalar shf::Scalar::operator-() const {
 }
 
 shf::Scalar& shf::Scalar::operator+=(const shf::Scalar& other) {
-  if (bn_add(m_internal, m_internal, other.m_internal) != RLC_OK) {
-    throw std::runtime_error("Scalar addition failed");
-  }
-  if (bn_mod(m_internal, m_internal, k_curve_order) != RLC_OK) {
-    throw std::runtime_error("Scalar modulo failed");
-  }
-  return *this;
-}
-
-shf::Scalar& shf::Scalar::operator-=(const shf::Scalar& other) {
-  if (bn_sub(m_internal, m_internal, other.m_internal) != RLC_OK) {
-    throw std::runtime_error("Scalar subtraction failed");
-  }
-  if (bn_mod(m_internal, m_internal, k_curve_order) != RLC_OK) {
-    throw std::runtime_error("Scalar modulo failed");
-  }
+  bn_add(m_internal, m_internal, other.m_internal);
+  bn_mod(m_internal, m_internal, k_curve_order);
   return *this;
 }
 
 shf::Scalar& shf::Scalar::operator*=(const shf::Scalar& other) {
-  if (bn_mul(m_internal, m_internal, other.m_internal) != RLC_OK) {
-    throw std::runtime_error("Scalar multiplication failed");
-  }
-  if (bn_mod(m_internal, m_internal, k_curve_order) != RLC_OK) {
-    throw std::runtime_error("Scalar modulo failed");
-  }
+  bn_mul(m_internal, m_internal, other.m_internal);
+  bn_mod(m_internal, m_internal, k_curve_order);
   return *this;
 }
 
@@ -277,13 +188,7 @@ bool shf::Scalar::operator==(const shf::Scalar& other) const {
   return bn_cmp(m_internal, other.m_internal) == RLC_EQ;
 }
 
-void shf::Scalar::Write(uint8_t* dest, std::size_t dest_size) const {
-  if (!dest) {
-    throw std::invalid_argument("destination buffer cannot be null");
-  }
-  if (dest_size < ByteSize()) {
-    throw std::invalid_argument("destination buffer too small for Scalar write");
-  }
+void shf::Scalar::Write(uint8_t* dest) const {
   bn_write_bin(dest, ByteSize(), m_internal);
 }
 
@@ -295,7 +200,7 @@ shf::Scalar shf::Scalar::CreateRandom() {
 
 shf::Scalar shf::Scalar::CreateFromInt(unsigned int v) {
   Scalar s;
-  bn_set_dig(s.m_internal, static_cast<dig_t>(v));
+  bn_set_dig(s.m_internal, (dig_t)v);
   return s;
 }
 
