@@ -1,30 +1,27 @@
 #include "curve.h"
 
 #include <stdexcept>
+#include <mutex>
 
-static int k_relic_initialized = 0;
+static std::once_flag k_init_flag;
 static bn_t k_curve_order;
 
 void shf::CurveInit() {
-  if (k_relic_initialized) {
-    return;
-  }
+  std::call_once(k_init_flag, []() {
+    core_init();
+    if (err_get_code() != RLC_OK) {
+      throw std::runtime_error("relic core_init() failed");
+    }
 
-  core_init();
-  if (err_get_code() != RLC_OK) {
-    throw std::runtime_error("relic core_init() failed");
-  }
+    TRY { ec_param_set_any(); }
+    CATCH_ANY {
+      core_clean();
+      throw std::runtime_error("relic ec_param_set_any() failed");
+    }
 
-  TRY { ec_param_set_any(); }
-  CATCH_ANY {
-    core_clean();
-    throw std::runtime_error("relic ec_param_set_any() failed");
-  }
-
-  bn_new(k_curve_order);
-  ec_curve_get_ord(k_curve_order);
-
-  k_relic_initialized = 1;
+    bn_new(k_curve_order);
+    ec_curve_get_ord(k_curve_order);
+  });
 }
 
 shf::Point shf::Point::Generator() {
