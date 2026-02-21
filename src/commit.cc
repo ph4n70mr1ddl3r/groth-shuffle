@@ -2,8 +2,13 @@
 
 #include <stdexcept>
 
+static constexpr std::size_t MAX_COMMIT_KEY_SIZE = 100000;
+
 shf::CommitKey shf::CreateCommitKey(const std::size_t size) {
   if (size == 0) throw std::invalid_argument("cannot create a key of size 0");
+  if (size > MAX_COMMIT_KEY_SIZE) {
+    throw std::invalid_argument("commitment key size too large");
+  }
 
   CommitKey ck;
   ck.G.reserve(size);

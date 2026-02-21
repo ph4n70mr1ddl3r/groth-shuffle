@@ -113,11 +113,13 @@ TEST_CASE("shuffle verification failure cases") {
 
   // Test verification with wrong input ciphertexts
   std::vector<shf::Ctxt> wrong_ctxts = ctxts;
-  wrong_ctxts[0] = shf::Encrypt(pk, shf::Point::CreateRandom()); // Different ciphertext
-  REQUIRE_FALSE(shuffler.VerifyShuffle(wrong_ctxts, proof, hash));
+  wrong_ctxts[0] = shf::Encrypt(pk, shf::Point::CreateRandom());
+  shf::Hash hash1;
+  REQUIRE_FALSE(shuffler.VerifyShuffle(wrong_ctxts, proof, hash1));
 
   // Test verification with tampered proof
   auto tampered_proof = proof;
   tampered_proof.permuted[0] = shf::Encrypt(pk, shf::Point::CreateRandom());
-  REQUIRE_FALSE(shuffler.VerifyShuffle(ctxts, tampered_proof, hash));
+  shf::Hash hash2;
+  REQUIRE_FALSE(shuffler.VerifyShuffle(ctxts, tampered_proof, hash2));
 }
