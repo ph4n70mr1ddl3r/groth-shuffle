@@ -1,5 +1,5 @@
-#ifndef MH_SHUFFLER_H
-#define MH_SHUFFLER_H
+#ifndef SHF_SHUFFLER_H
+#define SHF_SHUFFLER_H
 
 #include <stdexcept>
 #include <vector>
@@ -79,6 +79,6 @@ class Shuffler {
   Prg m_prg;
 };
 
-}  // namespace mh
+}  // namespace shf
 
-#endif  // MH_SHUFFLER_H
+#endif  // SHF_SHUFFLER_H

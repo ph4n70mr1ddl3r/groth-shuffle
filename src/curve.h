@@ -1,5 +1,5 @@
-#ifndef MH_CURVE_H
-#define MH_CURVE_H
+#ifndef SHF_CURVE_H
+#define SHF_CURVE_H
 
 #include <gmp.h>
 
@@ -102,5 +102,5 @@ class Point {
   ec_t m_internal;
 };
 
-}  // namespace mh
-#endif  // MH_CURVE_H
+}  // namespace shf
+#endif  // SHF_CURVE_H

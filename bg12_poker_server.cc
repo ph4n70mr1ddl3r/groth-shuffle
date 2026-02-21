@@ -9,6 +9,7 @@
 #include <chrono>
 #include <fstream>
 #include <algorithm>
+#include <array>
 
 #include "curve.h"
 #include "cipher.h"
@@ -189,8 +190,18 @@ struct TimingResults {
     }
 };
 
+static std::array<uint8_t, 16> GenerateRandomSeed() {
+    std::array<uint8_t, 16> seed{};
+    std::random_device rd;
+    std::generate(seed.begin(), seed.end(), [&]() { return static_cast<uint8_t>(rd()); });
+    return seed;
+}
+
 class PokerServerSimulation {
 private:
+    std::array<uint8_t, 16> alice_seed;
+    std::array<uint8_t, 16> bob_seed;
+    
     Player alice;
     Player bob;
     Server server;
@@ -199,8 +210,11 @@ private:
     TimingResults timing;
     
 public:
-    PokerServerSimulation() : alice("Alice", reinterpret_cast<const uint8_t*>("alice12345678901")), 
-                              bob("Bob", reinterpret_cast<const uint8_t*>("bob123456789012")) {
+    PokerServerSimulation() : 
+            alice_seed(GenerateRandomSeed()),
+            bob_seed(GenerateRandomSeed()),
+            alice("Alice", alice_seed.data()), 
+            bob("Bob", bob_seed.data()) {
         server.SetKeys(alice, bob);
         server.InitializeDeck();
     }
@@ -561,12 +575,17 @@ public:
 };
 
 int main() {
-    shf::CurveInit();
-    
-    std::cout << "\nInitializing Server-Based Poker Simulation...\n\n";
-    
-    PokerServerSimulation sim;
-    sim.RunProtocol();
-    
-    return 0;
+    try {
+        shf::CurveInit();
+        
+        std::cout << "\nInitializing Server-Based Poker Simulation...\n\n";
+        
+        PokerServerSimulation sim;
+        sim.RunProtocol();
+        
+        return 0;
+    } catch (const std::exception& e) {
+        std::cerr << "Fatal error: " << e.what() << std::endl;
+        return 1;
+    }
 }

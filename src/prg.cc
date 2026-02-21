@@ -2,6 +2,11 @@
 
 #include <cstring>
 
+void shf::secure_clear(void* ptr, std::size_t size) {
+    volatile uint8_t* p = static_cast<volatile uint8_t*>(ptr);
+    while (size--) *p++ = 0;
+}
+
 /* https://github.com/sebastien-riou/aes-brute-force */
 
 #define DO_ENC_BLOCK(m, k)              \
@@ -66,7 +71,7 @@ void shf::Prg::Fill(uint8_t* dest, std::size_t n) {
 
   std::size_t nblocks = n / BlockSize();
 
-  if (nblocks % BlockSize()) nblocks++;
+  if (n % BlockSize()) nblocks++;
 
   __m128i mask = CreateMask(m_counter);
   uint8_t* out = new uint8_t[nblocks * BlockSize()];

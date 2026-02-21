@@ -1,7 +1,7 @@
 #include "shuffler.h"
 
-#include <iostream>
 #include <numeric>
+#include <limits>
 
 shf::Permutation shf::CreatePermutation(std::size_t size, shf::Prg& prg) {
   if (!size) return Permutation();
@@ -11,10 +11,16 @@ shf::Permutation shf::CreatePermutation(std::size_t size, shf::Prg& prg) {
   std::vector<std::size_t> r(size);
   prg.Fill(r);
 
-  // Fisher-Yates
+  // Fisher-Yates with rejection sampling to avoid modulo bias
   std::size_t c = 0;
-  for (int i = size - 1; i >= 0; i--) {
-    std::size_t j = r[c++] % (i + 1);
+  for (std::size_t i = size; i-- > 0; ) {
+    std::size_t max = std::numeric_limits<std::size_t>::max() - 
+                      (std::numeric_limits<std::size_t>::max() % (i + 1));
+    std::size_t j;
+    do {
+      j = r[c++];
+    } while (c < r.size() && j > max);
+    j %= (i + 1);
     std::swap(p[i], p[j]);
   }
 
