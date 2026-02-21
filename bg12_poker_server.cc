@@ -21,6 +21,10 @@
 
 using namespace std::chrono;
 
+static constexpr int CARDS_PER_SUIT = 13;
+static constexpr int NUM_SUITS = 4;
+static constexpr int DECK_SIZE = CARDS_PER_SUIT * NUM_SUITS;
+
 struct Timer {
     std::string name;
     high_resolution_clock::time_point start;
@@ -49,8 +53,8 @@ struct Card {
     Card(int s, int r, int idx, shf::Point p) : suit(s), rank(r), index(idx), point(p) {}
     
     static Card FromIndex(int idx, const shf::Point& p) {
-        int suit = idx / 13;
-        int rank = idx % 13 + 1;
+        int suit = idx / CARDS_PER_SUIT;
+        int rank = idx % CARDS_PER_SUIT + 1;
         return Card(suit, rank, idx, p);
     }
     
@@ -82,7 +86,7 @@ struct Player {
     Player(std::string n, const uint8_t* seed) : name(n), prg(seed) {
         sk = shf::CreateSecretKey();
         pk = shf::CreatePublicKey(sk);
-        ck = shf::CreateCommitKey(52);
+        ck = shf::CreateCommitKey(DECK_SIZE);
     }
 };
 
@@ -102,7 +106,7 @@ struct Server {
     
     void InitializeDeck() {
         original_deck.clear();
-        for (int i = 0; i < 52; ++i) {
+        for (int i = 0; i < DECK_SIZE; ++i) {
             shf::Point p = shf::Point::CreateRandom();
             original_deck.push_back(Card::FromIndex(i, p));
         }
@@ -117,7 +121,7 @@ struct Server {
     }
     
     Card FindCard(const shf::Point& p) {
-        for (int j = 0; j < 52; ++j) {
+        for (int j = 0; j < DECK_SIZE; ++j) {
             if (p == original_deck[j].point) {
                 return original_deck[j];
             }
@@ -176,7 +180,7 @@ struct TimingResults {
                   << std::right << std::setw(25) << "Average (min - max)\n";
         std::cout << std::string(60, '-') << "\n";
         
-        print_row("Alice's Initial Encryption", alice_encrypt, 52);
+        print_row("Alice's Initial Encryption", alice_encrypt, DECK_SIZE);
         print_row("Bob's Shuffle (prove)", bob_shuffle_prove, 1);
         print_row("Bob's Shuffle (verify)", bob_shuffle_verify, 1);
         print_row("Alice's Shuffle (prove)", alice_shuffle_prove, 1);
@@ -184,8 +188,8 @@ struct TimingResults {
         print_row("Card Decryption", decrypt, 5);
         
         std::cout << "\n";
-        std::cout << "Total deck size: 52 cards\n";
-        std::cout << "Encrypted deck size: " << (52 * sizeof(shf::Ctxt)) << " bytes\n";
+        std::cout << "Total deck size: " << DECK_SIZE << " cards\n";
+        std::cout << "Encrypted deck size: " << (DECK_SIZE * sizeof(shf::Ctxt)) << " bytes\n";
         std::cout << "Proof size: ~" << (sizeof(shf::ShuffleP)) << " bytes\n";
     }
 };
@@ -254,7 +258,7 @@ public:
         std::cout << "STEP 1: SERVER INITIALIZES DECK\n";
         std::cout << std::string(70, '=') << "\n\n";
         
-        std::cout << "Server creates a fresh deck of 52 cards.\n";
+        std::cout << "Server creates a fresh deck of " << DECK_SIZE << " cards.\n";
         std::cout << "Server knows the original order (for verification only).\n";
         std::cout << "Deck will be encrypted before leaving server's control.\n\n";
         
@@ -262,7 +266,7 @@ public:
         for (int i = 0; i < 5; ++i) {
             std::cout << "  Card " << std::setw(2) << i << ": " << server.original_deck[i].ToString() << "\n";
         }
-        std::cout << "  ... and " << (52 - 5) << " more cards\n";
+        std::cout << "  ... and " << (DECK_SIZE - 5) << " more cards\n";
         
         std::cout << "\nState:\n";
         std::cout << "  Server knows: Original deck order\n";
@@ -284,7 +288,7 @@ public:
         std::vector<shf::Ctxt> encrypted_deck;
         
         {
-            Timer t("Alice encrypt 52 cards", timing.alice_encrypt);
+            Timer t("Alice encrypt cards", timing.alice_encrypt);
             for (const auto& card : server.original_deck) {
                 shf::Ctxt c = shf::Encrypt(alice.pk, card.point);
                 encrypted_deck.push_back(c);
