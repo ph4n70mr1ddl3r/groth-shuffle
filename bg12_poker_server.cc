@@ -328,10 +328,11 @@ public:
         server.ReceiveFromPlayer("Bob", proof.permuted);
         
         std::cout << "\nServer requests Alice to verify Bob's proof...\n";
+        shf::Hash hash_v1;
         bool verified;
         {
             Timer t("Bob shuffle verify", timing.bob_shuffle_verify);
-            verified = shuffler.VerifyShuffle(server.current_deck, proof, hash);
+            verified = shuffler.VerifyShuffle(server.current_deck, proof, hash_v1);
         }
         std::cout << "Verification result: " << (verified ? "PASSED" : "FAILED") << "\n";
         
@@ -377,10 +378,11 @@ public:
         server.ReceiveFromPlayer("Alice", proof2.permuted);
         
         std::cout << "\nServer requests Bob to verify Alice's proof...\n";
+        shf::Hash hash2_v;
         bool verified2;
         {
             Timer t("Alice shuffle verify", timing.alice_shuffle_verify);
-            verified2 = shuffler2.VerifyShuffle(server.current_deck, proof2, hash2);
+            verified2 = shuffler2.VerifyShuffle(server.current_deck, proof2, hash2_v);
         }
         std::cout << "Verification result: " << (verified2 ? "PASSED" : "FAILED") << "\n";
         
