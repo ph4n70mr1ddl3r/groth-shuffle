@@ -11,7 +11,7 @@ struct CommitKey {
   std::vector<Point> G;
   Point H;
 
-  std::size_t Size() const { return G.size(); };
+  std::size_t Size() const { return G.size(); }
 };
 
 CommitKey CreateCommitKey(const std::size_t size);

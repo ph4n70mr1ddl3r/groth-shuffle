@@ -27,7 +27,7 @@ class Scalar {
   static Scalar CreateFromInt(unsigned int v);
   static Scalar Read(const uint8_t* bytes);
 
-  static constexpr std::size_t ByteSize() { return 32; };
+  static constexpr std::size_t ByteSize() { return 32; }
 
   Scalar();
   ~Scalar();
@@ -51,7 +51,7 @@ class Scalar {
   Scalar& operator*=(const Scalar& other);
 
   bool operator==(const Scalar& other) const;
-  bool operator!=(const Scalar& other) const { return !(*this == other); };
+  bool operator!=(const Scalar& other) const { return !(*this == other); }
 
   void Write(uint8_t* dest) const;
 
@@ -69,7 +69,7 @@ class Point {
   static Point CreateRandom();
   static Point Read(const uint8_t* bytes);
 
-  static std::size_t ByteSize() { return 2 + RLC_FP_BYTES; };
+  static std::size_t ByteSize() { return 2 + RLC_FP_BYTES; }
 
   Point();
   ~Point();

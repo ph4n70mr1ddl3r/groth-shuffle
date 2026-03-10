@@ -136,8 +136,6 @@ struct ShuffleStep {
     std::vector<shf::Ctxt> output_cards;
     shf::ShuffleP proof;
     bool verified;
-    double prove_time;
-    double verify_time;
 };
 
 struct TimingResults {
@@ -146,7 +144,6 @@ struct TimingResults {
     std::vector<double> bob_shuffle_verify;
     std::vector<double> alice_shuffle_prove;
     std::vector<double> alice_shuffle_verify;
-    std::vector<double> deal_card;
     std::vector<double> decrypt;
     
     void Print() {

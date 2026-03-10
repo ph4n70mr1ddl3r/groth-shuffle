@@ -217,6 +217,9 @@ shf::Scalar shf::Scalar::CreateFromInt(unsigned int v) {
 }
 
 shf::Scalar shf::Scalar::Read(const uint8_t* bytes) {
+  if (bytes == nullptr) {
+    throw std::invalid_argument("bytes cannot be null");
+  }
   Scalar s;
   bn_read_bin(s.m_internal, bytes, ByteSize());
   bn_mod(s.m_internal, s.m_internal, k_curve_order);

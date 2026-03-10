@@ -90,7 +90,6 @@ TEST_CASE("shuffle edge cases") {
 
   auto proof = shuffler5.Shuffle(small_ctxts, hash5);
   REQUIRE(proof.permuted.size() == 5);
-  // Note: Verification test removed due to hash state management complexity
 }
 
 TEST_CASE("shuffle verification failure cases") {

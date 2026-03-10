@@ -3,6 +3,7 @@
 #include <cassert>
 #include <limits>
 #include <numeric>
+#include <stdexcept>
 
 shf::Permutation shf::CreatePermutation(std::size_t size, shf::Prg& prg) {
   if (!size) return Permutation();
@@ -26,7 +27,9 @@ shf::Permutation shf::CreatePermutation(std::size_t size, shf::Prg& prg) {
         c = 0;
       }
       j = r[c++];
-      assert(++iterations < kMaxIterations && "rejection sampling exceeded iteration limit");
+      if (++iterations >= kMaxIterations) {
+        throw std::runtime_error("rejection sampling exceeded iteration limit");
+      }
     } while (j > max);
     j %= (i + 1);
     std::swap(p[i], p[j]);
@@ -36,7 +39,7 @@ shf::Permutation shf::CreatePermutation(std::size_t size, shf::Prg& prg) {
 }
 
 static inline std::vector<shf::Scalar> PermutationAsScalars(
-    const shf::Permutation p) {
+    const shf::Permutation& p) {
   std::vector<shf::Scalar> s;
   const std::size_t n = p.size();
   s.reserve(n);
@@ -119,6 +122,9 @@ static inline shf::Scalar ShuffleChallenge3(shf::Hash& hash,
 
 shf::ShuffleP shf::Shuffler::Shuffle(const std::vector<shf::Ctxt>& Es,
                                     shf::Hash& hash) {
+  if (Es.empty()) {
+    throw std::invalid_argument("cannot shuffle empty ciphertext vector");
+  }
   const std::size_t n = Es.size();
 
   // permute and randomize ciphertexts
