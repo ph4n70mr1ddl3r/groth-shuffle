@@ -18,8 +18,12 @@ shf::Permutation shf::CreatePermutation(std::size_t size, shf::Prg& prg) {
                       (std::numeric_limits<std::size_t>::max() % (i + 1));
     std::size_t j;
     do {
+      if (c >= r.size()) {
+        prg.Fill(r);
+        c = 0;
+      }
       j = r[c++];
-    } while (c < r.size() && j > max);
+    } while (j > max);
     j %= (i + 1);
     std::swap(p[i], p[j]);
   }

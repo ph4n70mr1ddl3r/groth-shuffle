@@ -46,7 +46,13 @@ shf::Point shf::Point::Read(const uint8_t* bytes) {
     if (ep_is_valid(p.m_internal) != 1) {
       throw std::runtime_error("decoded point is not on the curve");
     }
-  } else if (bytes[0] != 1) {
+  } else if (bytes[0] == 1) {
+    for (std::size_t i = 1; i < ByteSize(); ++i) {
+      if (bytes[i] != 0) {
+        throw std::invalid_argument("non-zero bytes in infinity encoding");
+      }
+    }
+  } else {
     throw std::invalid_argument("invalid point encoding prefix");
   }
   return p;
@@ -213,5 +219,6 @@ shf::Scalar shf::Scalar::CreateFromInt(unsigned int v) {
 shf::Scalar shf::Scalar::Read(const uint8_t* bytes) {
   Scalar s;
   bn_read_bin(s.m_internal, bytes, ByteSize());
+  bn_mod(s.m_internal, s.m_internal, k_curve_order);
   return s;
 }

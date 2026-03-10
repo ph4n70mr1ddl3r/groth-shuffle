@@ -27,7 +27,8 @@ class Hash {
  private:
   static constexpr std::size_t kCapacity = 512 / (8 * sizeof(uint64_t));
   static constexpr std::size_t kStateSize = 25;
-  static constexpr std::size_t kCutoff = kStateSize - (kCapacity & ~0x80000000);
+  static constexpr std::size_t kRate = kStateSize - kCapacity;
+  static constexpr std::size_t kCutoff = kRate;
 
   uint64_t mState[kStateSize] = {0};
   uint8_t mStateBytes[kStateSize * 8] = {0};

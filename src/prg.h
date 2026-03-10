@@ -19,6 +19,8 @@ class Prg {
 
   Prg();
 
+  ~Prg() { secure_clear(m_seed, SeedSize()); }
+
   Prg(const uint8_t* seed);
 
   void Fill(uint8_t* dest, std::size_t n);
@@ -39,7 +41,7 @@ class Prg {
   void Init();
 
   uint8_t m_seed[sizeof(__m128i)] = {0};
-  long m_counter = 0;
+  uint64_t m_counter = 0;
   __m128i m_state[11];
 };
 

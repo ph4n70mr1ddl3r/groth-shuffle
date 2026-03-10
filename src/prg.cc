@@ -1,6 +1,7 @@
 #include "prg.h"
 
 #include <cstring>
+#include <random>
 
 void shf::secure_clear(void* ptr, std::size_t size) {
     volatile uint8_t* p = static_cast<volatile uint8_t*>(ptr);
@@ -55,14 +56,20 @@ inline static void aes128_enc(__m128i* key_schedule, uint8_t* pt, uint8_t* ct) {
   _mm_storeu_si128((__m128i*)ct, m);
 }
 
-shf::Prg::Prg() { Init(); }
+shf::Prg::Prg() {
+  std::random_device rd;
+  for (std::size_t i = 0; i < SeedSize(); ++i) {
+    m_seed[i] = static_cast<uint8_t>(rd());
+  }
+  Init();
+}
 
 shf::Prg::Prg(const uint8_t* seed) {
   std::memcpy(m_seed, seed, SeedSize());
   Init();
 }
 
-static inline __m128i CreateMask(const long counter) {
+static inline __m128i CreateMask(const uint64_t counter) {
   return _mm_set_epi64x(0x0123456789ABCDEF, counter);
 }
 

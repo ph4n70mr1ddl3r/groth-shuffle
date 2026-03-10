@@ -38,7 +38,10 @@ std::vector<T> Permute(const std::vector<T>& things, const Permutation& perm) {
 
   std::vector<T> permuted;
   permuted.reserve(n);
-  for (const auto& idx : perm) permuted.emplace_back(things[idx]);
+  for (const auto& idx : perm) {
+    if (idx >= n) throw std::invalid_argument("permutation index out of bounds");
+    permuted.emplace_back(things[idx]);
+  }
   return permuted;
 }
 
