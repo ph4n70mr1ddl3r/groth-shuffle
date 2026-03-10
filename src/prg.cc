@@ -50,7 +50,7 @@ inline static void aes128_load_key(uint8_t* enc_key, __m128i* key_schedule) {
   key_schedule[10] = AES_128_key_exp(key_schedule[9], 0x36);
 }
 
-inline static void aes128_enc(__m128i* key_schedule, uint8_t* pt, uint8_t* ct) {
+inline static void aes128_enc(__m128i* key_schedule, const uint8_t* pt, uint8_t* ct) {
   __m128i m = _mm_loadu_si128((__m128i*)pt);
   DO_ENC_BLOCK(m, key_schedule);
   _mm_storeu_si128((__m128i*)ct, m);
@@ -81,8 +81,8 @@ void shf::Prg::Fill(uint8_t* dest, std::size_t n) {
   if (n % BlockSize()) nblocks++;
 
   __m128i mask = CreateMask(m_counter);
-  uint8_t* out = new uint8_t[nblocks * BlockSize()];
-  uint8_t* p = out;
+  std::vector<uint8_t> out(nblocks * BlockSize());
+  uint8_t* p = out.data();
 
   for (std::size_t i = 0; i < nblocks; ++i) {
     aes128_enc(m_state, (uint8_t*)(&mask), p);
@@ -91,8 +91,7 @@ void shf::Prg::Fill(uint8_t* dest, std::size_t n) {
     p += BlockSize();
   }
 
-  std::memcpy(dest, out, n);
-  delete[] out;
+  std::memcpy(dest, out.data(), n);
 }
 
 void shf::Prg::Update() { m_counter++; }

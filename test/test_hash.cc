@@ -52,7 +52,7 @@ TEST_CASE("hash") {
     REQUIRE(shf::DigestEquals(digest, SHA3_256_abc));
     REQUIRE(shf::DigestEquals(copy.Finalize(), SHA3_256_abc));
 
-    // cannot call finalize multiple times on the same hash object
+    // Finalize modifies internal state, so subsequent calls produce incorrect results
     REQUIRE(!shf::DigestEquals(copy.Finalize(), SHA3_256_abc));
   }
 }

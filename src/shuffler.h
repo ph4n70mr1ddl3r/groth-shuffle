@@ -55,6 +55,14 @@ struct ShuffleP {
 
 class Shuffler {
  public:
+  /**
+   * @brief Construct a Shuffler.
+   * @param pk the public key for encryption
+   * @param ck the commitment key
+   * @param prg the pseudo-random generator (will be copied)
+   * @note The PRG is copied by value. Each Shuffler should receive a unique
+   *       PRG instance to avoid duplicate random streams.
+   */
   Shuffler(const PublicKey& pk, const CommitKey& ck, Prg& prg)
       : m_pk(pk), m_ck(ck), m_prg(prg){};
 

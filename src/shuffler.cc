@@ -51,14 +51,15 @@ static inline std::vector<shf::Scalar> ExpSuccessive(const shf::Scalar& x,
   return values;
 }
 
-#define TYPED_VECTOR(_typ, _name, _size) \
-  std::vector<_typ> _name;               \
-  _name.reserve(_size);
-
-#define SCALAR_VECTOR(_name, _size) TYPED_VECTOR(shf::Scalar, _name, _size)
+template<typename T>
+static inline std::vector<T> make_reserved_vector(std::size_t size) {
+  std::vector<T> v;
+  v.reserve(size);
+  return v;
+}
 
 static inline shf::Ctxt Randomize(const shf::PublicKey& pk, const shf::Ctxt& E,
-                                 const shf::Scalar& r) {
+                                  const shf::Scalar& r) {
   return shf::Add(shf::Encrypt(pk, shf::Point(), r), E);
 }
 
@@ -66,7 +67,7 @@ static inline std::vector<shf::Ctxt> Randomize(
     const shf::PublicKey& pk, const std::vector<shf::Ctxt>& Es,
     const std::vector<shf::Scalar>& rs) {
   const std::size_t n = Es.size();
-  TYPED_VECTOR(shf::Ctxt, randomized, n);
+  auto randomized = make_reserved_vector<shf::Ctxt>(n);
   const shf::Point one = shf::Point();
   for (std::size_t i = 0; i < n; ++i) {
     randomized.emplace_back(Randomize(pk, Es[i], rs[i]));
@@ -91,15 +92,17 @@ static inline shf::Scalar ShuffleChallenge1(shf::Hash& hash,
   return shf::ScalarFromHash(hash);
 }
 
-#define RANDOM_SCALAR_VECTOR(_name, _size)            \
-  do {                                                \
-    _name.reserve(_size);                             \
-    for (std::size_t __i = 0; __i < _size; ++__i)     \
-      _name.emplace_back(shf::Scalar::CreateRandom()); \
-  } while (0)
+static inline std::vector<shf::Scalar> make_random_scalar_vector(std::size_t size) {
+  std::vector<shf::Scalar> v;
+  v.reserve(size);
+  for (std::size_t i = 0; i < size; ++i) {
+    v.emplace_back(shf::Scalar::CreateRandom());
+  }
+  return v;
+}
 
 static inline shf::Scalar ShuffleChallenge2(shf::Hash& hash, const shf::Scalar& c,
-                                           const shf::Point& C) {
+                                            const shf::Point& C) {
   hash.Update(c).Update(C);
   return shf::ScalarFromHash(hash);
 }
@@ -111,13 +114,12 @@ static inline shf::Scalar ShuffleChallenge3(shf::Hash& hash,
 }
 
 shf::ShuffleP shf::Shuffler::Shuffle(const std::vector<shf::Ctxt>& Es,
-                                   shf::Hash& hash) {
+                                    shf::Hash& hash) {
   const std::size_t n = Es.size();
 
   // permute and randomize ciphertexts
   const Permutation p = CreatePermutation(n, m_prg);
-  std::vector<Scalar> rho;
-  RANDOM_SCALAR_VECTOR(rho, n);
+  auto rho = make_random_scalar_vector(n);
   const std::vector<Ctxt> pEs = Randomize(m_pk, Permute(Es, p), rho);
 
   // Ca = commit(ck ; pi(1) ... pi(n) ; r)
@@ -134,7 +136,7 @@ shf::ShuffleP shf::Shuffler::Shuffle(const std::vector<shf::Ctxt>& Es,
   const Scalar y = ShuffleChallenge2(hash, x, Cb.C);
   const Scalar z = ShuffleChallenge3(hash, y);
 
-  SCALAR_VECTOR(dz, n);
+  auto dz = make_reserved_vector<Scalar>(n);
   dz.emplace_back(y * a[0] + b[0] - z);
   Scalar prod = dz[0];
   for (std::size_t i = 1; i < n; ++i) {
@@ -162,7 +164,7 @@ static inline shf::Point CommitConstantNoRandomness(const shf::CommitKey& ck,
 }
 
 bool shf::Shuffler::VerifyShuffle(const std::vector<shf::Ctxt>& ctxts,
-                                 const shf::ShuffleP& proof, shf::Hash& hash) {
+                                  const shf::ShuffleP& proof, shf::Hash& hash) {
   const Scalar x = ShuffleChallenge1(hash, ctxts, proof.permuted, proof.Ca);
   const Scalar y = ShuffleChallenge2(hash, x, proof.Cb);
   const Scalar z = ShuffleChallenge3(hash, y);
@@ -172,7 +174,7 @@ bool shf::Shuffler::VerifyShuffle(const std::vector<shf::Ctxt>& ctxts,
   const Point CdCz = Cd + Cz;
 
   const std::size_t n = ctxts.size();
-  SCALAR_VECTOR(xexp, n);
+  auto xexp = make_reserved_vector<Scalar>(n);
   xexp.emplace_back(x);
   Scalar prod = x - z;
   for (std::size_t i = 1; i < n; ++i) {
