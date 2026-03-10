@@ -1,8 +1,8 @@
 #include "hash.h"
 
-#include <cassert>
+#include <array>
 #include <cstring>
-#include <vector>
+#include <stdexcept>
 
 static const uint64_t keccakf_rndc[24] = {
     0x0000000000000001ULL, 0x0000000000008082ULL, 0x800000000000808aULL,
@@ -22,8 +22,10 @@ static const unsigned int keccakf_piln[24] = {10, 7,  11, 17, 18, 3,  5,  16,
                                               8,  21, 24, 4,  15, 23, 19, 13,
                                               12, 2,  20, 14, 22, 9,  6,  1};
 
-static inline uint64_t rotl64(uint64_t x, uint64_t y) {
-  return (x << y) | (x >> ((sizeof(uint64_t) * 8) - y));
+static inline uint64_t rotl64(uint64_t x, unsigned int y) {
+  y &= 63;
+  if (y == 0) return x;
+  return (x << y) | (x >> (64 - y));
 }
 
 static inline void keccakf(uint64_t state[25]) {
@@ -106,22 +108,23 @@ shf::Hash& shf::Hash::Update(const uint8_t* bytes, std::size_t nbytes) {
 }
 
 shf::Hash& shf::Hash::Update(const shf::Point& point) {
-  std::vector<uint8_t> data(Point::ByteSize());
+  std::array<uint8_t, 64> data{};
   point.Write(data.data());
   Update(data.data(), Point::ByteSize());
   return *this;
 }
 
 shf::Hash& shf::Hash::Update(const shf::Scalar& scalar) {
-  const auto n = Scalar::ByteSize();
-  std::vector<uint8_t> data(n);
+  std::array<uint8_t, 32> data{};
   scalar.Write(data.data());
-  Update(data.data(), n);
+  Update(data.data(), Scalar::ByteSize());
   return *this;
 }
 
 shf::Digest shf::Hash::Finalize() {
-  assert(mByteIndex < 8 && "byte index out of range");
+  if (mByteIndex >= 8) {
+    throw std::runtime_error("hash state corrupted: byte index out of range");
+  }
   uint64_t t = (uint64_t)(((uint64_t)(0x02 | (1 << 2))) << ((mByteIndex)*8));
   mState[mWordIndex] ^= mSaved ^ t;
   mState[kCutoff - 1] ^= 0x8000000000000000ULL;

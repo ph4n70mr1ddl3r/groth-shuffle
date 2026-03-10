@@ -1,5 +1,6 @@
 #include "prg.h"
 
+#include <algorithm>
 #include <cstring>
 #include <random>
 
@@ -76,22 +77,18 @@ static inline __m128i CreateMask(const uint64_t counter) {
 void shf::Prg::Fill(uint8_t* dest, std::size_t n) {
   if (!n) return;
 
-  std::size_t nblocks = n / BlockSize();
+  std::size_t offset = 0;
+  while (offset < n) {
+    __m128i mask = CreateMask(m_counter);
+    alignas(16) uint8_t block[16];
+    aes128_enc(m_state, reinterpret_cast<uint8_t*>(&mask), block);
 
-  if (n % BlockSize()) nblocks++;
+    std::size_t to_copy = std::min(n - offset, BlockSize());
+    std::memcpy(dest + offset, block, to_copy);
 
-  __m128i mask = CreateMask(m_counter);
-  std::vector<uint8_t> out(nblocks * BlockSize());
-  uint8_t* p = out.data();
-
-  for (std::size_t i = 0; i < nblocks; ++i) {
-    aes128_enc(m_state, (uint8_t*)(&mask), p);
+    offset += to_copy;
     Update();
-    mask = CreateMask(m_counter);
-    p += BlockSize();
   }
-
-  std::memcpy(dest, out.data(), n);
 }
 
 void shf::Prg::Update() { m_counter++; }

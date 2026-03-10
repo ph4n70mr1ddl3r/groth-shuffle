@@ -20,7 +20,10 @@ class Prg {
 
   Prg();
 
-  ~Prg() { secure_clear(m_seed, SeedSize()); }
+  ~Prg() {
+    secure_clear(m_seed, SeedSize());
+    secure_clear(m_state, sizeof(m_state));
+  }
 
   Prg(const uint8_t* seed);
 
