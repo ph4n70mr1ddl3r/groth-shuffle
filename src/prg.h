@@ -2,6 +2,7 @@
 #define SHF_PRG_H
 
 #include <cstring>
+#include <type_traits>
 #include <wmmintrin.h>
 
 #include <cstdint>
@@ -27,13 +28,8 @@ class Prg {
 
   template <typename T>
   void Fill(std::vector<T>& to_fill) {
-    const auto n = to_fill.size();
-    const auto data_size = sizeof(T) * n;
-    std::vector<uint8_t> data(data_size);
-    Fill(data.data(), data_size);
-    for (std::size_t i = 0; i < n; ++i) {
-      std::memcpy(&to_fill[i], data.data() + i * sizeof(T), sizeof(T));
-    }
+    static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable");
+    Fill(reinterpret_cast<uint8_t*>(to_fill.data()), sizeof(T) * to_fill.size());
   }
 
  private:

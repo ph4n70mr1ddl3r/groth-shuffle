@@ -1,5 +1,6 @@
 #include "hash.h"
 
+#include <cassert>
 #include <cstring>
 #include <vector>
 
@@ -120,6 +121,7 @@ shf::Hash& shf::Hash::Update(const shf::Scalar& scalar) {
 }
 
 shf::Digest shf::Hash::Finalize() {
+  assert(mByteIndex < 8 && "byte index out of range");
   uint64_t t = (uint64_t)(((uint64_t)(0x02 | (1 << 2))) << ((mByteIndex)*8));
   mState[mWordIndex] ^= mSaved ^ t;
   mState[kCutoff - 1] ^= 0x8000000000000000ULL;

@@ -58,19 +58,19 @@ shf::Point shf::Point::Read(const uint8_t* bytes) {
   return p;
 }
 
-shf::Point::Point() {
+shf::Point::Point() noexcept {
   ec_new(m_internal);
   ec_set_infty(m_internal);
 }
 
-shf::Point::~Point() { ec_free(m_internal); }
+shf::Point::~Point() noexcept { ec_free(m_internal); }
 
 shf::Point::Point(const shf::Point& other) {
   ec_new(m_internal);
   ec_copy(m_internal, other.m_internal);
 }
 
-shf::Point::Point(shf::Point&& other) {
+shf::Point::Point(shf::Point&& other) noexcept {
   ec_new(m_internal);
   ec_copy(m_internal, other.m_internal);
 }
@@ -80,12 +80,12 @@ shf::Point& shf::Point::operator=(const shf::Point& other) {
   return *this;
 }
 
-shf::Point& shf::Point::operator=(shf::Point&& other) {
+shf::Point& shf::Point::operator=(shf::Point&& other) noexcept {
   ec_copy(m_internal, other.m_internal);
   return *this;
 }
 
-bool shf::Point::IsInfinity() const { return ec_is_infty(m_internal) == 1; }
+bool shf::Point::IsInfinity() const noexcept { return ec_is_infty(m_internal) == 1; }
 
 shf::Point shf::Point::operator+(const shf::Point& other) const {
   Point r;
@@ -133,14 +133,14 @@ shf::Scalar::Scalar() {
   bn_zero(m_internal);
 }
 
-shf::Scalar::~Scalar() { bn_free(m_internal); }
+shf::Scalar::~Scalar() noexcept { bn_free(m_internal); }
 
 shf::Scalar::Scalar(const shf::Scalar& other) {
   bn_new(m_internal);
   bn_copy(m_internal, other.m_internal);
 }
 
-shf::Scalar::Scalar(shf::Scalar&& other) {
+shf::Scalar::Scalar(shf::Scalar&& other) noexcept {
   bn_new(m_internal);
   bn_copy(m_internal, other.m_internal);
 }
@@ -150,12 +150,12 @@ shf::Scalar& shf::Scalar::operator=(const shf::Scalar& other) {
   return *this;
 }
 
-shf::Scalar& shf::Scalar::operator=(shf::Scalar&& other) {
+shf::Scalar& shf::Scalar::operator=(shf::Scalar&& other) noexcept {
   bn_copy(m_internal, other.m_internal);
   return *this;
 }
 
-bool shf::Scalar::IsZero() const { return bn_is_zero(m_internal) == 1; }
+bool shf::Scalar::IsZero() const noexcept { return bn_is_zero(m_internal) == 1; }
 
 shf::Scalar shf::Scalar::operator+(const shf::Scalar& other) const {
   Scalar r;
