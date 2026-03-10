@@ -35,7 +35,7 @@ struct DLogP {
  * @param w the witness
  * @return a new proof.
  */
-DLogP CreateProof(const DLogS& statement, Hash& hash, const Scalar& w);
+[[nodiscard]] DLogP CreateProof(const DLogS& statement, Hash& hash, const Scalar& w);
 
 /**
  * @brief Verify a proof of knowledge of discrete logarithm.
@@ -44,7 +44,7 @@ DLogP CreateProof(const DLogS& statement, Hash& hash, const Scalar& w);
  * @param proof the proof to verify
  * @return true if the proof is valid and false otherwise.
  */
-bool VerifyProof(const DLogS& statement, Hash& hash, const DLogP& proof);
+[[nodiscard]] bool VerifyProof(const DLogS& statement, Hash& hash, const DLogP& proof);
 
 /**
  * @brief Knowledge of equality of discrete log.
@@ -75,7 +75,7 @@ struct DLogEqP {
  * @param w the witness
  * @return a proof.
  */
-DLogEqP CreateProof(const DLogEqS& statement, Hash& hash, const Scalar& w);
+[[nodiscard]] DLogEqP CreateProof(const DLogEqS& statement, Hash& hash, const Scalar& w);
 
 /**
  * @brief Verify a proof of equality of discrete logs.
@@ -84,7 +84,7 @@ DLogEqP CreateProof(const DLogEqS& statement, Hash& hash, const Scalar& w);
  * @param proof the proof to verify
  * @return true if the proof is valid and false otherwise.
  */
-bool VerifyProof(const DLogEqS& statement, Hash& hash, const DLogEqP& proof);
+[[nodiscard]] bool VerifyProof(const DLogEqS& statement, Hash& hash, const DLogEqP& proof);
 
 /*
  * The next part of the header contains definitions of the sub-proofs needed to
@@ -134,8 +134,8 @@ struct ProductP {
  * @param w1 witness (randomness used for commitment)
  * @return a proof.
  */
-ProductP CreateProof(const CommitKey& ck, Hash& hash, const ProductS& statement,
-                     const std::vector<Scalar>& w0, const Scalar& w1);
+[[nodiscard]] ProductP CreateProof(const CommitKey& ck, Hash& hash, const ProductS& statement,
+                      const std::vector<Scalar>& w0, const Scalar& w1);
 
 /**
  * @brief Verify a product proof.
@@ -145,7 +145,7 @@ ProductP CreateProof(const CommitKey& ck, Hash& hash, const ProductS& statement,
  * @param proof the proof to verify
  * @return true if the proof is valid and false otherwise.
  */
-bool VerifyProof(const CommitKey& ck, Hash& hash, const ProductS& statement,
+[[nodiscard]] bool VerifyProof(const CommitKey& ck, Hash& hash, const ProductS& statement,
                  const ProductP& proof);
 
 struct MultiExpS {
@@ -176,7 +176,7 @@ struct MultiExpP {
  * @param w2 witness (randomness for an encryption of 1)
  * @return a proof.
  */
-MultiExpP CreateProof(const CommitKey& ck, const PublicKey& pk, Hash& hash,
+[[nodiscard]] MultiExpP CreateProof(const CommitKey& ck, const PublicKey& pk, Hash& hash,
                       const MultiExpS& statement, const std::vector<Scalar>& w0,
                       const Scalar& w1, const Scalar& w2);
 
@@ -189,7 +189,7 @@ MultiExpP CreateProof(const CommitKey& ck, const PublicKey& pk, Hash& hash,
  * @param proof the proof to verify
  * @return true if the proof is valid and false otherwise.
  */
-bool VerifyProof(const CommitKey& ck, const PublicKey& pk, Hash& hash,
+[[nodiscard]] bool VerifyProof(const CommitKey& ck, const PublicKey& pk, Hash& hash,
                  const MultiExpS& statement, const MultiExpP& proof);
 
 }  // namespace shf

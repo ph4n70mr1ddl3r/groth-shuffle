@@ -14,21 +14,19 @@ struct CommitKey {
   std::size_t Size() const { return G.size(); }
 };
 
-CommitKey CreateCommitKey(const std::size_t size);
+[[nodiscard]] CommitKey CreateCommitKey(const std::size_t size);
 
 struct CommitmentAndRandomness {
   Point C;
   Scalar r;
 };
 
-CommitmentAndRandomness Commit(const CommitKey& ck,
-                               const std::vector<Scalar>& m);
-
-Point Commit(const CommitKey& ck, const Scalar& r,
-             const std::vector<Scalar>& m);
-
-bool CheckCommitment(const CommitKey& ck, const Point& comm, const Scalar& r,
-                     const std::vector<Scalar>& m);
+[[nodiscard]] CommitmentAndRandomness Commit(const CommitKey& ck,
+                                const std::vector<Scalar>& m);
+[[nodiscard]] Point Commit(const CommitKey& ck, const Scalar& r,
+              const std::vector<Scalar>& m);
+[[nodiscard]] bool CheckCommitment(const CommitKey& ck, const Point& comm, const Scalar& r,
+                      const std::vector<Scalar>& m);
 
 }  // namespace shf
 

@@ -10,11 +10,11 @@ namespace shf {
 
 using Digest = std::array<uint8_t, 32>;
 
-bool DigestEquals(const Digest& a, const Digest& b);
+[[nodiscard]] bool DigestEquals(const Digest& a, const Digest& b);
 
 class Hash {
  public:
-  static constexpr std::size_t DigestSize() { return 32; };
+  static constexpr std::size_t DigestSize() noexcept { return 32; };
 
   Hash() = default;
 
@@ -22,7 +22,7 @@ class Hash {
   Hash& Update(const Point& point);
   Hash& Update(const Scalar& scalar);
 
-  Digest Finalize();
+  [[nodiscard]] Digest Finalize();
 
  private:
   static constexpr std::size_t kCapacity = 512 / (8 * sizeof(uint64_t));
@@ -37,7 +37,7 @@ class Hash {
   unsigned int mWordIndex = 0;
 };
 
-Scalar ScalarFromHash(const Hash& hash);
+[[nodiscard]] Scalar ScalarFromHash(const Hash& hash);
 
 }  // namespace shf
 

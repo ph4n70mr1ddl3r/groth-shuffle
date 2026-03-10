@@ -23,7 +23,7 @@ using Permutation = std::vector<std::size_t>;
  * @param prg the random generator to use
  * @return a random permutation.
  */
-Permutation CreatePermutation(std::size_t size, shf::Prg& prg);
+[[nodiscard]] Permutation CreatePermutation(std::size_t size, shf::Prg& prg);
 
 /**
  * @brief Permute a list of things.
@@ -32,7 +32,7 @@ Permutation CreatePermutation(std::size_t size, shf::Prg& prg);
  * @return a permutation of the input.
  */
 template <typename T>
-std::vector<T> Permute(const std::vector<T>& things, const Permutation& perm) {
+[[nodiscard]] std::vector<T> Permute(const std::vector<T>& things, const Permutation& perm) {
   const std::size_t n = things.size();
   if (n != perm.size()) throw std::invalid_argument("invalid permutation size");
 
@@ -72,7 +72,7 @@ class Shuffler {
    * @param hash a hash function object
    * @return a proof of that the shuffle was done correctly.
    */
-  ShuffleP Shuffle(const std::vector<Ctxt>& ctxts, Hash& hash);
+  [[nodiscard]] ShuffleP Shuffle(const std::vector<Ctxt>& ctxts, Hash& hash);
 
   /**
    * @brief Verify a shuffle.

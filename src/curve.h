@@ -20,12 +20,11 @@ class Point;
 
 class Scalar {
  public:
-  // internal access needed for scalar multiplications.
   friend class Point;
 
-  static Scalar CreateRandom();
-  static Scalar CreateFromInt(unsigned int v);
-  static Scalar Read(const uint8_t* bytes);
+  [[nodiscard]] static Scalar CreateRandom();
+  [[nodiscard]] static Scalar CreateFromInt(unsigned int v);
+  [[nodiscard]] static Scalar Read(const uint8_t* bytes);
 
   static constexpr std::size_t ByteSize() noexcept { return 32; }
 
@@ -38,20 +37,20 @@ class Scalar {
   Scalar& operator=(const Scalar& other);
   Scalar& operator=(Scalar&& other) noexcept;
 
-  bool IsZero() const noexcept;
+  [[nodiscard]] bool IsZero() const noexcept;
 
-  Scalar operator+(const Scalar& other) const;
-  Scalar operator-(const Scalar& other) const;
-  Scalar operator*(const Scalar& other) const;
+  [[nodiscard]] Scalar operator+(const Scalar& other) const;
+  [[nodiscard]] Scalar operator-(const Scalar& other) const;
+  [[nodiscard]] Scalar operator*(const Scalar& other) const;
 
-  Scalar operator-() const;
+  [[nodiscard]] Scalar operator-() const;
 
   Scalar& operator+=(const Scalar& other);
   Scalar& operator-=(const Scalar& other);
   Scalar& operator*=(const Scalar& other);
 
-  bool operator==(const Scalar& other) const;
-  bool operator!=(const Scalar& other) const { return !(*this == other); }
+  [[nodiscard]] bool operator==(const Scalar& other) const noexcept;
+  [[nodiscard]] bool operator!=(const Scalar& other) const noexcept { return !(*this == other); }
 
   void Write(uint8_t* dest) const;
 
@@ -65,11 +64,11 @@ class Scalar {
 
 class Point {
  public:
-  static Point Generator();
-  static Point CreateRandom();
-  static Point Read(const uint8_t* bytes);
+  [[nodiscard]] static Point Generator();
+  [[nodiscard]] static Point CreateRandom();
+  [[nodiscard]] static Point Read(const uint8_t* bytes);
 
-  static std::size_t ByteSize() noexcept { return 2 + RLC_FP_BYTES; }
+  [[nodiscard]] static constexpr std::size_t ByteSize() noexcept { return 2 + RLC_FP_BYTES; }
 
   Point() noexcept;
   ~Point() noexcept;
@@ -80,21 +79,21 @@ class Point {
   Point& operator=(const Point& other);
   Point& operator=(Point&& other) noexcept;
 
-  bool IsInfinity() const noexcept;
+  [[nodiscard]] bool IsInfinity() const noexcept;
 
-  Point operator+(const Point& other) const;
-  Point operator-(const Point& other) const;
+  [[nodiscard]] Point operator+(const Point& other) const;
+  [[nodiscard]] Point operator-(const Point& other) const;
 
   Point& operator+=(const Point& other);
   Point& operator-=(const Point& other);
 
-  Point operator*(const Scalar& scalar) const;
-  friend Point operator*(const Scalar& scalar, const Point& point) {
+  [[nodiscard]] Point operator*(const Scalar& scalar) const;
+  [[nodiscard]] friend Point operator*(const Scalar& scalar, const Point& point) {
     return point * scalar;
   };
 
-  bool operator==(const Point& other) const;
-  bool operator!=(const Point& other) const { return !(*this == other); }
+  [[nodiscard]] bool operator==(const Point& other) const noexcept;
+  [[nodiscard]] bool operator!=(const Point& other) const noexcept { return !(*this == other); }
 
   void Write(uint8_t* dest) const;
 

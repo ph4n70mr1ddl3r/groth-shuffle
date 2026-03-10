@@ -14,18 +14,18 @@ void secure_clear(void* ptr, std::size_t size);
 
 class Prg {
  public:
-  static constexpr std::size_t BlockSize() { return sizeof(__m128i); };
+  [[nodiscard]] static constexpr std::size_t BlockSize() noexcept { return sizeof(__m128i); };
 
-  static constexpr std::size_t SeedSize() { return BlockSize(); };
+  [[nodiscard]] static constexpr std::size_t SeedSize() noexcept { return BlockSize(); };
 
   Prg();
 
-  ~Prg() {
+  ~Prg() noexcept {
     secure_clear(m_seed, SeedSize());
     secure_clear(m_state, sizeof(m_state));
   }
 
-  Prg(const uint8_t* seed);
+  explicit Prg(const uint8_t* seed);
 
   void Fill(uint8_t* dest, std::size_t n);
 

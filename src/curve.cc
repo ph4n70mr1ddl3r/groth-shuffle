@@ -115,7 +115,7 @@ shf::Point shf::Point::operator*(const shf::Scalar& scalar) const {
   return r;
 }
 
-bool shf::Point::operator==(const shf::Point& other) const {
+bool shf::Point::operator==(const shf::Point& other) const noexcept {
   return ec_cmp(m_internal, other.m_internal) == RLC_EQ;
 }
 
@@ -196,7 +196,7 @@ shf::Scalar& shf::Scalar::operator*=(const shf::Scalar& other) {
   return *this;
 }
 
-bool shf::Scalar::operator==(const shf::Scalar& other) const {
+bool shf::Scalar::operator==(const shf::Scalar& other) const noexcept {
   return bn_cmp(m_internal, other.m_internal) == RLC_EQ;
 }
 
