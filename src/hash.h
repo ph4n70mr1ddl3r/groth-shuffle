@@ -16,7 +16,7 @@ class Hash {
  public:
   static constexpr std::size_t DigestSize() { return 32; };
 
-  Hash(){};
+  Hash() = default;
 
   Hash& Update(const uint8_t* data, std::size_t n);
   Hash& Update(const Point& point);

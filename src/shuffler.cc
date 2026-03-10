@@ -1,7 +1,8 @@
 #include "shuffler.h"
 
-#include <numeric>
+#include <cassert>
 #include <limits>
+#include <numeric>
 
 shf::Permutation shf::CreatePermutation(std::size_t size, shf::Prg& prg) {
   if (!size) return Permutation();
@@ -17,12 +18,15 @@ shf::Permutation shf::CreatePermutation(std::size_t size, shf::Prg& prg) {
     std::size_t max = std::numeric_limits<std::size_t>::max() - 
                       (std::numeric_limits<std::size_t>::max() % (i + 1));
     std::size_t j;
+    std::size_t iterations = 0;
+    constexpr std::size_t kMaxIterations = 1000;
     do {
       if (c >= r.size()) {
         prg.Fill(r);
         c = 0;
       }
       j = r[c++];
+      assert(++iterations < kMaxIterations && "rejection sampling exceeded iteration limit");
     } while (j > max);
     j %= (i + 1);
     std::swap(p[i], p[j]);

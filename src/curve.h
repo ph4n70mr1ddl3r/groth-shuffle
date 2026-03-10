@@ -55,7 +55,9 @@ class Scalar {
 
   void Write(uint8_t* dest) const;
 
+#ifdef SHF_DEBUG
   void Print() const { bn_print(m_internal); }
+#endif
 
  private:
   bn_t m_internal;
@@ -96,7 +98,9 @@ class Point {
 
   void Write(uint8_t* dest) const;
 
+#ifdef SHF_DEBUG
   void Print() const { ec_print(m_internal); }
+#endif
 
  private:
   ec_t m_internal;
