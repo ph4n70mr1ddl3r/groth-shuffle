@@ -14,7 +14,7 @@ using Digest = std::array<uint8_t, 32>;
 
 class Hash {
  public:
-  static constexpr std::size_t DigestSize() noexcept { return 32; };
+  [[nodiscard]] static constexpr std::size_t DigestSize() noexcept { return 32; }
 
   Hash() = default;
 

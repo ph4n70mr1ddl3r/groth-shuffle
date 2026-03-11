@@ -187,7 +187,7 @@ struct TimingResults {
         std::cout << "\n";
         std::cout << "Total deck size: " << DECK_SIZE << " cards\n";
         std::cout << "Encrypted deck size: " << (DECK_SIZE * sizeof(shf::Ctxt)) << " bytes\n";
-        std::cout << "Proof size: ~" << (sizeof(shf::ShuffleP)) << " bytes\n";
+        std::cout << "Note: Proof size varies (contains variable-length vectors)\n";
     }
 };
 

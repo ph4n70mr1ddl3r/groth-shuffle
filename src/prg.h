@@ -14,9 +14,9 @@ void secure_clear(void* ptr, std::size_t size);
 
 class Prg {
  public:
-  [[nodiscard]] static constexpr std::size_t BlockSize() noexcept { return sizeof(__m128i); };
+  [[nodiscard]] static constexpr std::size_t BlockSize() noexcept { return sizeof(__m128i); }
 
-  [[nodiscard]] static constexpr std::size_t SeedSize() noexcept { return BlockSize(); };
+  [[nodiscard]] static constexpr std::size_t SeedSize() noexcept { return BlockSize(); }
 
   Prg();
 

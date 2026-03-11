@@ -119,7 +119,7 @@ bool shf::Point::operator==(const shf::Point& other) const noexcept {
   return ec_cmp(m_internal, other.m_internal) == RLC_EQ;
 }
 
-void shf::Point::Write(uint8_t* dest) const {
+void shf::Point::Write(uint8_t* dest) const noexcept {
   if (IsInfinity())
     dest[0] = 1;
   else {
@@ -200,7 +200,7 @@ bool shf::Scalar::operator==(const shf::Scalar& other) const noexcept {
   return bn_cmp(m_internal, other.m_internal) == RLC_EQ;
 }
 
-void shf::Scalar::Write(uint8_t* dest) const {
+void shf::Scalar::Write(uint8_t* dest) const noexcept {
   bn_write_bin(dest, ByteSize(), m_internal);
 }
 

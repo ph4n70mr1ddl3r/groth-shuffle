@@ -70,8 +70,10 @@ shf::Prg::Prg(const uint8_t* seed) {
   Init();
 }
 
+static constexpr uint64_t kMaskPrefix = 0x0123456789ABCDEFULL;
+
 static inline __m128i CreateMask(const uint64_t counter) {
-  return _mm_set_epi64x(0x0123456789ABCDEF, counter);
+  return _mm_set_epi64x(kMaskPrefix, counter);
 }
 
 void shf::Prg::Fill(uint8_t* dest, std::size_t n) {

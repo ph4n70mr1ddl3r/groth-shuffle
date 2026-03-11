@@ -26,7 +26,7 @@ class Scalar {
   [[nodiscard]] static Scalar CreateFromInt(unsigned int v);
   [[nodiscard]] static Scalar Read(const uint8_t* bytes);
 
-  static constexpr std::size_t ByteSize() noexcept { return 32; }
+  [[nodiscard]] static constexpr std::size_t ByteSize() noexcept { return 32; }
 
   Scalar();
   ~Scalar() noexcept;
@@ -52,7 +52,7 @@ class Scalar {
   [[nodiscard]] bool operator==(const Scalar& other) const noexcept;
   [[nodiscard]] bool operator!=(const Scalar& other) const noexcept { return !(*this == other); }
 
-  void Write(uint8_t* dest) const;
+  void Write(uint8_t* dest) const noexcept;
 
 #ifdef SHF_DEBUG
   void Print() const { bn_print(m_internal); }
@@ -95,7 +95,7 @@ class Point {
   [[nodiscard]] bool operator==(const Point& other) const noexcept;
   [[nodiscard]] bool operator!=(const Point& other) const noexcept { return !(*this == other); }
 
-  void Write(uint8_t* dest) const;
+  void Write(uint8_t* dest) const noexcept;
 
 #ifdef SHF_DEBUG
   void Print() const { ec_print(m_internal); }
