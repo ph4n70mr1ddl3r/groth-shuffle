@@ -34,7 +34,7 @@ class Scalar {
   Scalar(const Scalar& other);
   Scalar(Scalar&& other) noexcept;
 
-  Scalar& operator=(const Scalar& other);
+  Scalar& operator=(const Scalar& other) noexcept;
   Scalar& operator=(Scalar&& other) noexcept;
 
   [[nodiscard]] bool IsZero() const noexcept;
@@ -76,7 +76,7 @@ class Point {
   Point(const Point& other);
   Point(Point&& other) noexcept;
 
-  Point& operator=(const Point& other);
+  Point& operator=(const Point& other) noexcept;
   Point& operator=(Point&& other) noexcept;
 
   [[nodiscard]] bool IsInfinity() const noexcept;

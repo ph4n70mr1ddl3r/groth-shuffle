@@ -75,7 +75,7 @@ shf::Point::Point(shf::Point&& other) noexcept {
   ec_copy(m_internal, other.m_internal);
 }
 
-shf::Point& shf::Point::operator=(const shf::Point& other) {
+shf::Point& shf::Point::operator=(const shf::Point& other) noexcept {
   ec_copy(m_internal, other.m_internal);
   return *this;
 }
@@ -145,7 +145,7 @@ shf::Scalar::Scalar(shf::Scalar&& other) noexcept {
   bn_copy(m_internal, other.m_internal);
 }
 
-shf::Scalar& shf::Scalar::operator=(const shf::Scalar& other) {
+shf::Scalar& shf::Scalar::operator=(const shf::Scalar& other) noexcept {
   bn_copy(m_internal, other.m_internal);
   return *this;
 }

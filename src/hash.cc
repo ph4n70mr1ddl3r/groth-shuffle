@@ -62,6 +62,9 @@ static inline void keccakf(uint64_t state[25]) {
 }
 
 shf::Hash& shf::Hash::Update(const uint8_t* bytes, std::size_t nbytes) {
+  if (bytes == nullptr && nbytes > 0) {
+    throw std::invalid_argument("bytes cannot be null when nbytes > 0");
+  }
   unsigned int old_tail = (8 - mByteIndex) & 7;
   const uint8_t* p = bytes;
 
@@ -157,8 +160,7 @@ bool shf::DigestEquals(const shf::Digest& a, const shf::Digest& b) {
   return equal == 0;
 }
 
-shf::Scalar shf::ScalarFromHash(const shf::Hash& hash) {
-  auto copy(hash);
-  const auto d = copy.Finalize();
+shf::Scalar shf::ScalarFromHash(shf::Hash hash) {
+  const auto d = hash.Finalize();
   return shf::Scalar::Read(d.data());
 }

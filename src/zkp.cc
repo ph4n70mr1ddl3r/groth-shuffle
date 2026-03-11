@@ -1,5 +1,7 @@
 #include "zkp.h"
 
+#include <stdexcept>
+
 static inline shf::Scalar DLogChallenge(shf::Hash& hash, const shf::Point& p0,
                                        const shf::Point& p1,
                                        const shf::Point& p2) {
@@ -83,6 +85,9 @@ shf::ProductP shf::CreateProof(const shf::CommitKey& ck, shf::Hash& hash,
                              const std::vector<shf::Scalar>& w0,
                              const shf::Scalar& w1) {
   const auto n = w0.size();
+  if (n == 0) {
+    throw std::invalid_argument("w0 cannot be empty");
+  }
   const auto C = statement.C;
   const auto b = statement.b;
 

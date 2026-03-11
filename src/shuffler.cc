@@ -75,7 +75,6 @@ static inline std::vector<shf::Ctxt> Randomize(
     const std::vector<shf::Scalar>& rs) {
   const std::size_t n = Es.size();
   auto randomized = make_reserved_vector<shf::Ctxt>(n);
-  const shf::Point one = shf::Point();
   for (std::size_t i = 0; i < n; ++i) {
     randomized.emplace_back(Randomize(pk, Es[i], rs[i]));
   }

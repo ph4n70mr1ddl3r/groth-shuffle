@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstring>
 #include <random>
+#include <stdexcept>
 
 void shf::secure_clear(void* ptr, std::size_t size) {
     volatile uint8_t* p = static_cast<volatile uint8_t*>(ptr);
@@ -66,6 +67,9 @@ shf::Prg::Prg() {
 }
 
 shf::Prg::Prg(const uint8_t* seed) {
+  if (seed == nullptr) {
+    throw std::invalid_argument("seed cannot be null");
+  }
   std::memcpy(m_seed, seed, SeedSize());
   Init();
 }
@@ -93,6 +97,10 @@ void shf::Prg::Fill(uint8_t* dest, std::size_t n) {
   }
 }
 
-void shf::Prg::Update() { m_counter++; }
+void shf::Prg::Update() { 
+  // Note: Counter overflow at 2^64 is not handled. At 1 billion 
+  // operations/second, this would take ~585 years.
+  m_counter++; 
+}
 
 void shf::Prg::Init() { aes128_load_key(m_seed, m_state); }

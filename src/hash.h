@@ -17,6 +17,10 @@ class Hash {
   [[nodiscard]] static constexpr std::size_t DigestSize() noexcept { return 32; }
 
   Hash() = default;
+  Hash(const Hash&) = default;
+  Hash(Hash&&) noexcept = default;
+  Hash& operator=(const Hash&) = default;
+  Hash& operator=(Hash&&) noexcept = default;
 
   Hash& Update(const uint8_t* data, std::size_t n);
   Hash& Update(const Point& point);
@@ -37,7 +41,7 @@ class Hash {
   unsigned int mWordIndex = 0;
 };
 
-[[nodiscard]] Scalar ScalarFromHash(const Hash& hash);
+[[nodiscard]] Scalar ScalarFromHash(Hash hash);
 
 }  // namespace shf
 
