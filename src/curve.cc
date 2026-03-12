@@ -83,6 +83,7 @@ shf::Point::Point(const shf::Point& other) {
 shf::Point::Point(shf::Point&& other) noexcept {
   ec_new(m_internal);
   ec_copy(m_internal, other.m_internal);
+  ec_set_infty(other.m_internal);
 }
 
 shf::Point& shf::Point::operator=(const shf::Point& other) noexcept {
@@ -153,6 +154,7 @@ shf::Scalar::Scalar(const shf::Scalar& other) {
 shf::Scalar::Scalar(shf::Scalar&& other) noexcept {
   bn_new(m_internal);
   bn_copy(m_internal, other.m_internal);
+  bn_zero(other.m_internal);
 }
 
 shf::Scalar& shf::Scalar::operator=(const shf::Scalar& other) noexcept {
