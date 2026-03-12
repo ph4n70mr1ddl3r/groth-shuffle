@@ -3,13 +3,14 @@
 #include <cstring>
 #include <stdexcept>
 #include <mutex>
+#include <atomic>
 
 static std::once_flag k_init_flag;
 static bn_t k_curve_order;
-static bool k_initialized = false;
+static std::atomic<bool> k_initialized{false};
 
 static void EnsureInitialized() {
-  if (!k_initialized) {
+  if (!k_initialized.load(std::memory_order_acquire)) {
     throw std::runtime_error("CurveInit() must be called before using curve operations");
   }
 }
@@ -29,7 +30,7 @@ void shf::CurveInit() {
 
     bn_new(k_curve_order);
     ec_curve_get_ord(k_curve_order);
-    k_initialized = true;
+    k_initialized.store(true, std::memory_order_release);
   });
 }
 
