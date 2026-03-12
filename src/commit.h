@@ -24,7 +24,7 @@ struct CommitmentAndRandomness {
 [[nodiscard]] CommitmentAndRandomness Commit(const CommitKey& ck,
                                  const std::vector<Scalar>& m);
 [[nodiscard]] Point Commit(const CommitKey& ck, const Scalar& r,
-               const std::vector<Scalar>& m) noexcept;
+                const std::vector<Scalar>& m);
 [[nodiscard]] bool CheckCommitment(const CommitKey& ck, const Point& comm, const Scalar& r,
                        const std::vector<Scalar>& m) noexcept;
 

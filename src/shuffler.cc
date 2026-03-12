@@ -83,6 +83,9 @@ static inline std::vector<shf::Ctxt> Randomize(
 
 static inline shf::Scalar NegateInnerProd(const std::vector<shf::Scalar>& a,
                                          const std::vector<shf::Scalar>& b) {
+  if (a.size() != b.size()) {
+    throw std::invalid_argument("vector size mismatch in inner product");
+  }
   shf::Scalar d;
   for (std::size_t i = 0; i < a.size(); i++) d += a[i] * b[i];
   return -d;

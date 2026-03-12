@@ -19,10 +19,13 @@ shf::CommitKey shf::CreateCommitKey(const std::size_t size) {
 }
 
 shf::Point shf::Commit(const shf::CommitKey& ck, const shf::Scalar& r,
-                     const std::vector<shf::Scalar>& m) noexcept {
+                     const std::vector<shf::Scalar>& m) {
   const std::size_t n = m.size();
+  if (n > ck.G.size()) {
+    throw std::invalid_argument("message vector larger than commitment key");
+  }
   Point C;
-  for (std::size_t i = 0; i < n && i < ck.G.size(); ++i) C += m[i] * ck.G[i];
+  for (std::size_t i = 0; i < n; ++i) C += m[i] * ck.G[i];
   return C + r * ck.H;
 }
 
