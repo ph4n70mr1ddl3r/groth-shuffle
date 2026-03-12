@@ -26,6 +26,13 @@ class Hash {
   Hash& Update(const Point& point);
   Hash& Update(const Scalar& scalar);
 
+  /**
+   * @brief Finalizes the hash and returns the digest.
+   * 
+   * WARNING: After calling Finalize(), the hash object is in an undefined state.
+   * Calling Finalize() again on the same object will produce incorrect results.
+   * Create a new Hash object for each hash computation.
+   */
   [[nodiscard]] Digest Finalize();
 
  private:

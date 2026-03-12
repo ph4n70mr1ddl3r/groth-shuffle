@@ -52,6 +52,10 @@ class Scalar {
   [[nodiscard]] bool operator==(const Scalar& other) const noexcept;
   [[nodiscard]] bool operator!=(const Scalar& other) const noexcept { return !(*this == other); }
 
+  /**
+   * @brief Writes the scalar to a byte buffer.
+   * @param dest Destination buffer, must not be null and have at least ByteSize() bytes.
+   */
   void Write(uint8_t* dest) const noexcept;
 
 #ifdef SHF_DEBUG
@@ -95,6 +99,10 @@ class Point {
   [[nodiscard]] bool operator==(const Point& other) const noexcept;
   [[nodiscard]] bool operator!=(const Point& other) const noexcept { return !(*this == other); }
 
+  /**
+   * @brief Writes the point to a byte buffer.
+   * @param dest Destination buffer, must not be null and have at least ByteSize() bytes.
+   */
   void Write(uint8_t* dest) const noexcept;
 
 #ifdef SHF_DEBUG

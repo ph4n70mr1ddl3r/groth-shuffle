@@ -6,6 +6,13 @@
 
 static std::once_flag k_init_flag;
 static bn_t k_curve_order;
+static bool k_initialized = false;
+
+static void EnsureInitialized() {
+  if (!k_initialized) {
+    throw std::runtime_error("CurveInit() must be called before using curve operations");
+  }
+}
 
 void shf::CurveInit() {
   std::call_once(k_init_flag, []() {
@@ -22,6 +29,7 @@ void shf::CurveInit() {
 
     bn_new(k_curve_order);
     ec_curve_get_ord(k_curve_order);
+    k_initialized = true;
   });
 }
 
@@ -158,6 +166,7 @@ shf::Scalar& shf::Scalar::operator=(shf::Scalar&& other) noexcept {
 bool shf::Scalar::IsZero() const noexcept { return bn_is_zero(m_internal) == 1; }
 
 shf::Scalar shf::Scalar::operator+(const shf::Scalar& other) const {
+  EnsureInitialized();
   Scalar r;
   bn_add(r.m_internal, m_internal, other.m_internal);
   bn_mod(r.m_internal, r.m_internal, k_curve_order);
@@ -165,6 +174,7 @@ shf::Scalar shf::Scalar::operator+(const shf::Scalar& other) const {
 }
 
 shf::Scalar shf::Scalar::operator-(const shf::Scalar& other) const {
+  EnsureInitialized();
   Scalar r;
   bn_sub(r.m_internal, m_internal, other.m_internal);
   bn_mod(r.m_internal, r.m_internal, k_curve_order);
@@ -172,6 +182,7 @@ shf::Scalar shf::Scalar::operator-(const shf::Scalar& other) const {
 }
 
 shf::Scalar shf::Scalar::operator*(const shf::Scalar& other) const {
+  EnsureInitialized();
   Scalar r;
   bn_mul(r.m_internal, m_internal, other.m_internal);
   bn_mod(r.m_internal, r.m_internal, k_curve_order);
@@ -179,24 +190,28 @@ shf::Scalar shf::Scalar::operator*(const shf::Scalar& other) const {
 }
 
 shf::Scalar shf::Scalar::operator-() const {
+  EnsureInitialized();
   Scalar r;
   bn_sub(r.m_internal, k_curve_order, m_internal);
   return r;
 }
 
 shf::Scalar& shf::Scalar::operator+=(const shf::Scalar& other) {
+  EnsureInitialized();
   bn_add(m_internal, m_internal, other.m_internal);
   bn_mod(m_internal, m_internal, k_curve_order);
   return *this;
 }
 
 shf::Scalar& shf::Scalar::operator-=(const shf::Scalar& other) {
+  EnsureInitialized();
   bn_sub(m_internal, m_internal, other.m_internal);
   bn_mod(m_internal, m_internal, k_curve_order);
   return *this;
 }
 
 shf::Scalar& shf::Scalar::operator*=(const shf::Scalar& other) {
+  EnsureInitialized();
   bn_mul(m_internal, m_internal, other.m_internal);
   bn_mod(m_internal, m_internal, k_curve_order);
   return *this;
@@ -211,6 +226,7 @@ void shf::Scalar::Write(uint8_t* dest) const noexcept {
 }
 
 shf::Scalar shf::Scalar::CreateRandom() {
+  EnsureInitialized();
   Scalar s;
   bn_rand_mod(s.m_internal, k_curve_order);
   return s;
@@ -226,6 +242,7 @@ shf::Scalar shf::Scalar::Read(const uint8_t* bytes) {
   if (bytes == nullptr) {
     throw std::invalid_argument("bytes cannot be null");
   }
+  EnsureInitialized();
   Scalar s;
   bn_read_bin(s.m_internal, bytes, ByteSize());
   bn_mod(s.m_internal, s.m_internal, k_curve_order);
