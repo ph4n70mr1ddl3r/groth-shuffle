@@ -1,5 +1,6 @@
 #include "curve.h"
 
+#include <cstring>
 #include <stdexcept>
 #include <mutex>
 
@@ -47,10 +48,9 @@ shf::Point shf::Point::Read(const uint8_t* bytes) {
       throw std::runtime_error("decoded point is not on the curve");
     }
   } else if (bytes[0] == 1) {
-    for (std::size_t i = 1; i < ByteSize(); ++i) {
-      if (bytes[i] != 0) {
-        throw std::invalid_argument("non-zero bytes in infinity encoding");
-      }
+    constexpr uint8_t zero[Point::ByteSize() - 1] = {0};
+    if (std::memcmp(bytes + 1, zero, Point::ByteSize() - 1) != 0) {
+      throw std::invalid_argument("non-zero bytes in infinity encoding");
     }
   } else {
     throw std::invalid_argument("invalid point encoding prefix");
@@ -186,6 +186,12 @@ shf::Scalar shf::Scalar::operator-() const {
 
 shf::Scalar& shf::Scalar::operator+=(const shf::Scalar& other) {
   bn_add(m_internal, m_internal, other.m_internal);
+  bn_mod(m_internal, m_internal, k_curve_order);
+  return *this;
+}
+
+shf::Scalar& shf::Scalar::operator-=(const shf::Scalar& other) {
+  bn_sub(m_internal, m_internal, other.m_internal);
   bn_mod(m_internal, m_internal, k_curve_order);
   return *this;
 }
