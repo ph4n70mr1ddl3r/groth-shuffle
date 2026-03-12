@@ -324,9 +324,17 @@ public:
         std::cout << "Bob's shuffle (prove): ";
         shf::ShuffleP proof;
         {
-            Timer t("Bob shuffle prove", timing.bob_shuffle_prove);
-            proof = shuffler.Shuffle(server.current_deck, hash);
-        }
+    ~Timer() noexcept {
+    try {
+        auto end = high_resolution_clock::now();
+        double ms = duration_cast<microseconds>(end - start).count() / 1000.0;
+        times.push_back(ms);
+        std::cout << "  " << std::left << std::setw(30) << name << ": " 
+                   << std::right << std::setw(10) << std::fixed << std::setprecision(2) << ms << " ms\n";
+    } catch (...) {
+        // Silently ignore output errors in destructor
+    }
+}
         std::cout << "\n";
         
         std::cout << "Bob sends shuffled deck + proof to server.\n";
