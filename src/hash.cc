@@ -3,7 +3,6 @@
 #include <array>
 #include <cstring>
 #include <stdexcept>
-#include <vector>
 
 static const uint64_t keccakf_rndc[24] = {
     0x0000000000000001ULL, 0x0000000000008082ULL, 0x800000000000808aULL,
@@ -112,7 +111,7 @@ shf::Hash& shf::Hash::Update(const uint8_t* bytes, std::size_t nbytes) {
 }
 
 shf::Hash& shf::Hash::Update(const shf::Point& point) {
-  std::vector<uint8_t> data(Point::ByteSize());
+  std::array<uint8_t, Point::ByteSize()> data{};
   point.Write(data.data());
   Update(data.data(), Point::ByteSize());
   return *this;
