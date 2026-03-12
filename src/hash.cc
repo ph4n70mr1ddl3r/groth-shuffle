@@ -150,6 +150,11 @@ shf::Digest shf::Hash::Finalize() {
   shf::Digest digest = {0};
   for (std::size_t i = 0; i < digest.size(); ++i) digest[i] = stateBytes[i];
 
+  std::memset(mState, 0, sizeof(mState));
+  mSaved = 0;
+  mByteIndex = 0;
+  mWordIndex = 0;
+
   return digest;
 }
 

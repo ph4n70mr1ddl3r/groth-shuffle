@@ -9,7 +9,7 @@ shf::PublicKey shf::CreatePublicKey(const shf::SecretKey& sk) {
 }
 
 shf::Ctxt shf::Encrypt(const shf::PublicKey& pk, const shf::Point& m,
-                     const shf::Scalar& r) {
+                      const shf::Scalar& r) noexcept {
   const auto U = shf::Point::Generator() * r;
   return {U, m + r * pk};
 }
@@ -18,15 +18,15 @@ shf::Ctxt shf::Encrypt(const shf::PublicKey& pk, const shf::Point& m) {
   return Encrypt(pk, m, shf::Scalar::CreateRandom());
 }
 
-shf::Point shf::Decrypt(const shf::SecretKey& sk, const shf::Ctxt& ctxt) {
+shf::Point shf::Decrypt(const shf::SecretKey& sk, const shf::Ctxt& ctxt) noexcept {
   return ctxt.V - (sk * ctxt.U);
 }
 
-shf::Ctxt shf::Add(const shf::Ctxt& E0, const shf::Ctxt& E1) {
+shf::Ctxt shf::Add(const shf::Ctxt& E0, const shf::Ctxt& E1) noexcept {
   return {E0.U + E1.U, E0.V + E1.V};
 }
 
-shf::Ctxt shf::Multiply(const shf::Scalar& s, const shf::Ctxt& E) {
+shf::Ctxt shf::Multiply(const shf::Scalar& s, const shf::Ctxt& E) noexcept {
   return {s * E.U, s * E.V};
 }
 

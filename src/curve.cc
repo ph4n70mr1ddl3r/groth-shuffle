@@ -50,6 +50,7 @@ shf::Point shf::Point::Read(const uint8_t* bytes) {
   if (bytes == nullptr) {
     throw std::invalid_argument("bytes cannot be null");
   }
+  EnsureInitialized();
   Point p;
   if (bytes[0] == 0) {
     ec_read_bin(p.m_internal, bytes + 1, ByteSize() - 1);

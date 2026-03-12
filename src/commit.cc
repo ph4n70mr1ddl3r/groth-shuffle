@@ -19,13 +19,10 @@ shf::CommitKey shf::CreateCommitKey(const std::size_t size) {
 }
 
 shf::Point shf::Commit(const shf::CommitKey& ck, const shf::Scalar& r,
-                     const std::vector<shf::Scalar>& m) {
+                     const std::vector<shf::Scalar>& m) noexcept {
   const std::size_t n = m.size();
-  if (n > ck.G.size()) {
-    throw std::invalid_argument("message vector exceeds commitment key capacity");
-  }
   Point C;
-  for (std::size_t i = 0; i < n; ++i) C += m[i] * ck.G[i];
+  for (std::size_t i = 0; i < n && i < ck.G.size(); ++i) C += m[i] * ck.G[i];
   return C + r * ck.H;
 }
 
@@ -38,7 +35,7 @@ shf::CommitmentAndRandomness shf::Commit(const shf::CommitKey& ck,
 
 bool shf::CheckCommitment(const shf::CommitKey& ck, const shf::Point& comm,
                          const shf::Scalar& r,
-                         const std::vector<shf::Scalar>& m) {
+                         const std::vector<shf::Scalar>& m) noexcept {
   const auto comm_ = Commit(ck, r, m);
   return comm_ == comm;
 }
