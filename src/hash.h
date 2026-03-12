@@ -35,7 +35,6 @@ class Hash {
   static constexpr std::size_t kCutoff = kRate;
 
   uint64_t mState[kStateSize] = {0};
-  uint8_t mStateBytes[kStateSize * 8] = {0};
   uint64_t mSaved = 0;
   unsigned int mByteIndex = 0;
   unsigned int mWordIndex = 0;

@@ -152,30 +152,6 @@ shf::Digest shf::Hash::Finalize() {
 
   return digest;
 }
-  uint64_t t = (uint64_t)(((uint64_t)(0x02 | (1 << 2))) << ((mByteIndex)*8));
-  mState[mWordIndex] ^= mSaved ^ t;
-  mState[kCutoff - 1] ^= 0x8000000000000000ULL;
-  keccakf(mState);
-
-  for (std::size_t i = 0; i < kStateSize; ++i) {
-    const unsigned int t1 = (uint32_t)mState[i];
-    const unsigned int t2 = (uint32_t)(mState[i] >> 32);
-    mStateBytes[i * 8 + 0] = (uint8_t)t1;
-    mStateBytes[i * 8 + 1] = (uint8_t)(t1 >> 8);
-    mStateBytes[i * 8 + 2] = (uint8_t)(t1 >> 16);
-    mStateBytes[i * 8 + 3] = (uint8_t)(t1 >> 24);
-    mStateBytes[i * 8 + 4] = (uint8_t)t2;
-    mStateBytes[i * 8 + 5] = (uint8_t)(t2 >> 8);
-    mStateBytes[i * 8 + 6] = (uint8_t)(t2 >> 16);
-    mStateBytes[i * 8 + 7] = (uint8_t)(t2 >> 24);
-  }
-
-  // truncate
-  shf::Digest digest = {0};
-  for (std::size_t i = 0; i < digest.size(); ++i) digest[i] = mStateBytes[i];
-
-  return digest;
-}
 
 bool shf::DigestEquals(const shf::Digest& a, const shf::Digest& b) {
   uint8_t equal = 0;
