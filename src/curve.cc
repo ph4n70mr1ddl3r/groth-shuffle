@@ -54,7 +54,7 @@ shf::Point shf::Point::Read(const uint8_t* bytes) {
   Point p;
   if (bytes[0] == 0) {
     ec_read_bin(p.m_internal, bytes + 1, ByteSize() - 1);
-    if (ep_is_valid(p.m_internal) != 1) {
+    if (ec_is_valid(p.m_internal) != 1) {
       throw std::runtime_error("decoded point is not on the curve");
     }
   } else if (bytes[0] == 1) {

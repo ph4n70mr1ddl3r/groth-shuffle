@@ -183,6 +183,12 @@ static inline shf::Point CommitConstantNoRandomness(const shf::CommitKey& ck,
 
 bool shf::Shuffler::VerifyShuffle(const std::vector<shf::Ctxt>& ctxts,
                                   const shf::ShuffleP& proof, shf::Hash& hash) {
+  if (ctxts.size() != proof.permuted.size()) {
+    return false;
+  }
+  if (ctxts.size() < 3) {
+    return false;
+  }
   const Scalar x = ShuffleChallenge1(hash, ctxts, proof.permuted, proof.Ca);
   const Scalar y = ShuffleChallenge2(hash, x, proof.Cb);
   const Scalar z = ShuffleChallenge3(hash, y);

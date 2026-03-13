@@ -63,8 +63,8 @@ class Shuffler {
    * @note The PRG is copied by value. Each Shuffler should receive a unique
    *       PRG instance to avoid duplicate random streams.
    */
-  Shuffler(const PublicKey& pk, const CommitKey& ck, Prg& prg)
-      : m_pk(pk), m_ck(ck), m_prg(prg) {}
+  Shuffler(const PublicKey& pk, const CommitKey& ck, Prg prg)
+      : m_pk(pk), m_ck(ck), m_prg(std::move(prg)) {}
 
   /**
    * @brief Shuffle a set of ciphertexts and return a proof of correctness.

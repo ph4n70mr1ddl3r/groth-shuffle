@@ -38,8 +38,8 @@ inline static __m128i aes_128_key_expansion(__m128i key, __m128i keygened) {
   return _mm_xor_si128(key, keygened);
 }
 
-inline static void aes128_load_key(uint8_t* enc_key, __m128i* key_schedule) {
-  key_schedule[0] = _mm_loadu_si128((const __m128i*)enc_key);
+inline static void aes128_load_key(const uint8_t* enc_key, __m128i* key_schedule) {
+  key_schedule[0] = _mm_loadu_si128(reinterpret_cast<const __m128i*>(enc_key));
   key_schedule[1] = AES_128_key_exp(key_schedule[0], 0x01);
   key_schedule[2] = AES_128_key_exp(key_schedule[1], 0x02);
   key_schedule[3] = AES_128_key_exp(key_schedule[2], 0x04);
@@ -103,4 +103,7 @@ void shf::Prg::Update() {
   m_counter++; 
 }
 
-void shf::Prg::Init() { aes128_load_key(m_seed, m_state); }
+void shf::Prg::Init() {
+  aes128_load_key(m_seed, m_state);
+  secure_clear(m_seed, SeedSize());
+}

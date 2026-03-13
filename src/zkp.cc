@@ -88,6 +88,9 @@ shf::ProductP shf::CreateProof(const shf::CommitKey& ck, shf::Hash& hash,
   if (n < 3) {
     throw std::invalid_argument("w0 must have at least 3 elements");
   }
+  if (ck.G.size() < n) {
+    throw std::invalid_argument("commitment key too small for witness size");
+  }
   const auto C = statement.C;
   const auto b = statement.b;
 
@@ -193,6 +196,9 @@ bool shf::VerifyProof(const shf::CommitKey& ck, shf::Hash& hash,
 
 static inline shf::CommitmentAndRandomness CommitOne(const shf::CommitKey& ck,
                                                     const shf::Scalar& m) {
+  if (ck.G.empty()) {
+    throw std::invalid_argument("commitment key has no generators");
+  }
   const auto r = shf::Scalar::CreateRandom();
   return {m * ck.G[0] + r * ck.H, r};
 }

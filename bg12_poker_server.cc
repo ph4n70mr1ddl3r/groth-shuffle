@@ -57,6 +57,9 @@ struct Card {
     Card(int s, int r, int idx, shf::Point p) : suit(s), rank(r), index(idx), point(p) {}
     
     static Card FromIndex(int idx, const shf::Point& p) {
+        if (idx < 0 || idx >= DECK_SIZE) {
+            throw std::out_of_range("invalid card index");
+        }
         int suit = idx / CARDS_PER_SUIT;
         int rank = idx % CARDS_PER_SUIT + 1;
         return Card(suit, rank, idx, p);

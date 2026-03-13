@@ -45,6 +45,7 @@ class Hash {
   uint64_t mSaved = 0;
   unsigned int mByteIndex = 0;
   unsigned int mWordIndex = 0;
+  bool mFinalized = false;
 };
 
 [[nodiscard]] Scalar ScalarFromHash(Hash hash);

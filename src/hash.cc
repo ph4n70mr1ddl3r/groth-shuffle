@@ -61,6 +61,9 @@ static inline void keccakf(uint64_t state[25]) {
 }
 
 shf::Hash& shf::Hash::Update(const uint8_t* bytes, std::size_t nbytes) {
+  if (mFinalized) {
+    throw std::runtime_error("cannot update hash after finalization");
+  }
   if (bytes == nullptr && nbytes > 0) {
     throw std::invalid_argument("bytes cannot be null when nbytes > 0");
   }
@@ -154,6 +157,7 @@ shf::Digest shf::Hash::Finalize() {
   mSaved = 0;
   mByteIndex = 0;
   mWordIndex = 0;
+  mFinalized = true;
 
   return digest;
 }
