@@ -558,8 +558,8 @@ public:
         }
         
         std::cout << "=== PARTIALLY REVEALED DECK ===\n\n";
-        std::cout << "First 5 cards:\n";
-        for (int i = 0; i < 5; ++i) {
+        std::cout << "First " << revealed_cards.size() << " cards:\n";
+        for (size_t i = 0; i < revealed_cards.size(); ++i) {
             std::cout << "  Position " << i << ": " << revealed_cards[i].ToString() << "\n";
         }
         
