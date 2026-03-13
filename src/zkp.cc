@@ -85,8 +85,8 @@ shf::ProductP shf::CreateProof(const shf::CommitKey& ck, shf::Hash& hash,
                              const std::vector<shf::Scalar>& w0,
                              const shf::Scalar& w1) {
   const auto n = w0.size();
-  if (n == 0) {
-    throw std::invalid_argument("w0 cannot be empty");
+  if (n < 3) {
+    throw std::invalid_argument("w0 must have at least 3 elements");
   }
   const auto C = statement.C;
   const auto b = statement.b;

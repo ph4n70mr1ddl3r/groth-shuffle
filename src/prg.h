@@ -41,7 +41,7 @@ class Prg {
 
   uint8_t m_seed[sizeof(__m128i)] = {0};
   uint64_t m_counter = 0;
-  __m128i m_state[11];
+  __m128i m_state[11] = {};
 };
 
 }  // namespace shf

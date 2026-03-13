@@ -133,7 +133,7 @@ shf::Digest shf::Hash::Finalize() {
   mState[kCutoff - 1] ^= 0x8000000000000000ULL;
   keccakf(mState);
 
-  uint8_t stateBytes[kStateSize * 8];
+  std::array<uint8_t, kStateSize * 8> stateBytes{};
   for (std::size_t i = 0; i < kStateSize; ++i) {
     const unsigned int t1 = (uint32_t)mState[i];
     const unsigned int t2 = (uint32_t)(mState[i] >> 32);

@@ -1,6 +1,5 @@
 #include "shuffler.h"
 
-#include <cassert>
 #include <limits>
 #include <numeric>
 #include <stdexcept>
@@ -130,6 +129,9 @@ shf::ShuffleP shf::Shuffler::Shuffle(const std::vector<shf::Ctxt>& Es,
                                     shf::Hash& hash) {
   if (Es.empty()) {
     throw std::invalid_argument("cannot shuffle empty ciphertext vector");
+  }
+  if (Es.size() < 3) {
+    throw std::invalid_argument("shuffle requires at least 3 ciphertexts");
   }
   const std::size_t n = Es.size();
 

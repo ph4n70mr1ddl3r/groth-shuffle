@@ -73,11 +73,15 @@ TEST_CASE("shuffle edge cases") {
   shf::Prg prg;
   shf::Hash hash;
 
-  // Test with minimum size (1)
-  const auto ck1 = shf::CreateCommitKey(1);
-  shf::Shuffler shuffler1(pk, ck1, prg);
-  std::vector<shf::Ctxt> single_ctxt = {shf::Encrypt(pk, shf::Point::CreateRandom())};
-  REQUIRE_NOTHROW(shuffler1.Shuffle(single_ctxt, hash));
+  // Test with minimum supported size (3) - product proof requires at least 3 elements
+  const auto ck3 = shf::CreateCommitKey(3);
+  shf::Shuffler shuffler3(pk, ck3, prg);
+  std::vector<shf::Ctxt> three_ctxts;
+  for (int i = 0; i < 3; ++i) {
+    three_ctxts.emplace_back(shf::Encrypt(pk, shf::Point::CreateRandom()));
+  }
+  shf::Hash hash3;
+  REQUIRE_NOTHROW(shuffler3.Shuffle(three_ctxts, hash3));
 
   // Test with small deck (5 cards)
   const auto ck5 = shf::CreateCommitKey(5);
@@ -90,6 +94,25 @@ TEST_CASE("shuffle edge cases") {
 
   auto proof = shuffler5.Shuffle(small_ctxts, hash5);
   REQUIRE(proof.permuted.size() == 5);
+}
+
+TEST_CASE("shuffle minimum size enforced") {
+  shf::CurveInit();
+
+  const auto ck = shf::CreateCommitKey(2);
+  const auto sk = shf::CreateSecretKey();
+  const auto pk = shf::CreatePublicKey(sk);
+
+  shf::Prg prg;
+  shf::Shuffler shuffler(pk, ck, prg);
+  shf::Hash hash;
+
+  // Shuffle requires at least 3 ciphertexts for the product proof
+  std::vector<shf::Ctxt> two_ctxts;
+  for (int i = 0; i < 2; ++i) {
+    two_ctxts.emplace_back(shf::Encrypt(pk, shf::Point::CreateRandom()));
+  }
+  REQUIRE_THROWS_AS(shuffler.Shuffle(two_ctxts, hash), std::invalid_argument);
 }
 
 TEST_CASE("shuffle verification failure cases") {
