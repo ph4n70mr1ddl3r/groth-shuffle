@@ -445,7 +445,7 @@ public:
         std::vector<Card> alice_hole;
         std::vector<Card> bob_hole;
         
-        static constexpr int deal_order[] = {0, 1, 2, 3};
+        static constexpr std::array<int, 4> deal_order = {0, 1, 2, 3};
         
         std::cout << "Dealing order: Alice, Bob, Alice, Bob\n\n";
         

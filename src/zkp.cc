@@ -155,7 +155,11 @@ bool shf::VerifyProof(const shf::CommitKey& ck, shf::Hash& hash,
 
   const auto as = proof.as;
   const auto bs = proof.bs;
+  constexpr std::size_t MAX_PROOF_SIZE = 100000;
   if (ck.G.size() < as.size()) {
+    return false;
+  }
+  if (as.size() > MAX_PROOF_SIZE) {
     return false;
   }
   if (as.size() < 3 || bs.size() < 3 || as.size() != bs.size()) {

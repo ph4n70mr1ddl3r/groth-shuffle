@@ -37,8 +37,12 @@ shf::CommitmentAndRandomness shf::Commit(const shf::CommitKey& ck,
 }
 
 bool shf::CheckCommitment(const shf::CommitKey& ck, const shf::Point& comm,
-                         const shf::Scalar& r,
-                         const std::vector<shf::Scalar>& m) noexcept {
-  const auto comm_ = Commit(ck, r, m);
-  return comm_ == comm;
+                          const shf::Scalar& r,
+                          const std::vector<shf::Scalar>& m) {
+  try {
+    const auto comm_ = Commit(ck, r, m);
+    return comm_ == comm;
+  } catch (...) {
+    return false;
+  }
 }

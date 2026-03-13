@@ -7,6 +7,10 @@
 
 shf::Permutation shf::CreatePermutation(std::size_t size, shf::Prg& prg) {
   if (!size) return Permutation();
+  constexpr std::size_t MAX_PERMUTATION_SIZE = 100000;
+  if (size > MAX_PERMUTATION_SIZE) {
+    throw std::invalid_argument("permutation size too large");
+  }
 
   Permutation p(size);
   std::iota(p.begin(), p.end(), 0);

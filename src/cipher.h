@@ -18,11 +18,11 @@ using PublicKey = Point;
 [[nodiscard]] SecretKey CreateSecretKey();
 [[nodiscard]] PublicKey CreatePublicKey(const SecretKey& sk);
 
-[[nodiscard]] Ctxt Encrypt(const PublicKey& pk, const Point& m, const Scalar& r) noexcept;
+[[nodiscard]] Ctxt Encrypt(const PublicKey& pk, const Point& m, const Scalar& r);
 [[nodiscard]] Ctxt Encrypt(const PublicKey& pk, const Point& m);
-[[nodiscard]] Point Decrypt(const SecretKey& sk, const Ctxt& ctxt) noexcept;
-[[nodiscard]] Ctxt Multiply(const Scalar& s, const Ctxt& E) noexcept;
-[[nodiscard]] Ctxt Add(const Ctxt& E0, const Ctxt& E1) noexcept;
+[[nodiscard]] Point Decrypt(const SecretKey& sk, const Ctxt& ctxt);
+[[nodiscard]] Ctxt Multiply(const Scalar& s, const Ctxt& E);
+[[nodiscard]] Ctxt Add(const Ctxt& E0, const Ctxt& E1);
 [[nodiscard]] Ctxt Dot(const std::vector<shf::Scalar>& as, const std::vector<Ctxt>& Es);
 
 }  // namespace shf
