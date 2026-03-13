@@ -71,7 +71,6 @@ TEST_CASE("shuffle edge cases") {
   const auto pk = shf::CreatePublicKey(sk);
 
   shf::Prg prg;
-  shf::Hash hash;
 
   // Test with minimum supported size (3) - product proof requires at least 3 elements
   const auto ck3 = shf::CreateCommitKey(3);

@@ -109,6 +109,9 @@ static inline __m128i CreateMask(const uint64_t counter) {
 
 void shf::Prg::Fill(uint8_t* dest, std::size_t n) {
   if (!n) return;
+  if (dest == nullptr) {
+    throw std::invalid_argument("dest cannot be null when n > 0");
+  }
 
   std::size_t offset = 0;
   while (offset < n) {
