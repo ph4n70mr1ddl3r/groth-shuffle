@@ -23,7 +23,7 @@ using PublicKey = Point;
 [[nodiscard]] Point Decrypt(const SecretKey& sk, const Ctxt& ctxt);
 [[nodiscard]] Ctxt Multiply(const Scalar& s, const Ctxt& E);
 [[nodiscard]] Ctxt Add(const Ctxt& E0, const Ctxt& E1);
-[[nodiscard]] Ctxt Dot(const std::vector<shf::Scalar>& as, const std::vector<Ctxt>& Es);
+[[nodiscard]] Ctxt Dot(const std::vector<Scalar>& as, const std::vector<Ctxt>& Es);
 
 }  // namespace shf
 

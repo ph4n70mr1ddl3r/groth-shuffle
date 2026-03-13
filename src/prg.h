@@ -1,7 +1,6 @@
 #ifndef SHF_PRG_H
 #define SHF_PRG_H
 
-#include <cstring>
 #include <type_traits>
 #include <wmmintrin.h>
 
