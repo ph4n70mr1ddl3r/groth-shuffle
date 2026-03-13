@@ -53,9 +53,9 @@ inline static void aes128_load_key(uint8_t* enc_key, __m128i* key_schedule) {
 }
 
 inline static void aes128_enc(__m128i* key_schedule, const uint8_t* pt, uint8_t* ct) {
-  __m128i m = _mm_loadu_si128((__m128i*)pt);
+  __m128i m = _mm_loadu_si128(reinterpret_cast<const __m128i*>(pt));
   DO_ENC_BLOCK(m, key_schedule);
-  _mm_storeu_si128((__m128i*)ct, m);
+  _mm_storeu_si128(reinterpret_cast<__m128i*>(ct), m);
 }
 
 shf::Prg::Prg() {

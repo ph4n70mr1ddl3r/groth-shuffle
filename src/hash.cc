@@ -158,7 +158,7 @@ shf::Digest shf::Hash::Finalize() {
   return digest;
 }
 
-bool shf::DigestEquals(const shf::Digest& a, const shf::Digest& b) {
+bool shf::DigestEquals(const shf::Digest& a, const shf::Digest& b) noexcept {
   uint8_t equal = 0;
   for (std::size_t i = 0; i < shf::Hash::DigestSize(); ++i) equal |= a[i] ^ b[i];
   return equal == 0;

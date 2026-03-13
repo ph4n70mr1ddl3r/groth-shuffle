@@ -122,3 +122,18 @@ TEST_CASE("shuffle verification failure cases") {
   shf::Hash hash2;
   REQUIRE_FALSE(shuffler.VerifyShuffle(ctxts, tampered_proof, hash2));
 }
+
+TEST_CASE("shuffle empty throws") {
+  shf::CurveInit();
+
+  const auto ck = shf::CreateCommitKey(1);
+  const auto sk = shf::CreateSecretKey();
+  const auto pk = shf::CreatePublicKey(sk);
+
+  shf::Prg prg;
+  shf::Shuffler shuffler(pk, ck, prg);
+  shf::Hash hash;
+
+  std::vector<shf::Ctxt> empty_ctxts;
+  REQUIRE_THROWS_AS(shuffler.Shuffle(empty_ctxts, hash), std::invalid_argument);
+}

@@ -10,7 +10,7 @@ namespace shf {
 
 using Digest = std::array<uint8_t, 32>;
 
-[[nodiscard]] bool DigestEquals(const Digest& a, const Digest& b);
+[[nodiscard]] bool DigestEquals(const Digest& a, const Digest& b) noexcept;
 
 class Hash {
  public:
