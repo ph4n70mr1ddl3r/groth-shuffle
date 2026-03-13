@@ -52,7 +52,7 @@ TEST_CASE("hash") {
     REQUIRE(shf::DigestEquals(digest, SHA3_256_abc));
     REQUIRE(shf::DigestEquals(copy.Finalize(), SHA3_256_abc));
 
-    // Finalize modifies internal state, so subsequent calls produce incorrect results
-    REQUIRE(!shf::DigestEquals(copy.Finalize(), SHA3_256_abc));
+    // Finalize modifies internal state, calling again throws an exception
+    REQUIRE_THROWS_AS(copy.Finalize(), std::runtime_error);
   }
 }

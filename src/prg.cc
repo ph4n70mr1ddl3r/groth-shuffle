@@ -5,6 +5,27 @@
 #include <random>
 #include <stdexcept>
 
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+#include <cpuid.h>
+#define HAS_CPUID 1
+#else
+#define HAS_CPUID 0
+#endif
+
+namespace {
+bool CheckAesNiSupport() {
+#if HAS_CPUID
+    uint32_t eax, ebx, ecx, edx;
+    if (__get_cpuid(1, &eax, &ebx, &ecx, &edx)) {
+        return (ecx & bit_AES) != 0;
+    }
+#endif
+    return false;
+}
+
+bool g_aes_ni_available = CheckAesNiSupport();
+}
+
 void shf::secure_clear(void* ptr, std::size_t size) {
     volatile uint8_t* p = static_cast<volatile uint8_t*>(ptr);
     while (size--) *p++ = 0;
@@ -59,6 +80,9 @@ inline static void aes128_enc(__m128i* key_schedule, const uint8_t* pt, uint8_t*
 }
 
 shf::Prg::Prg() {
+  if (!g_aes_ni_available) {
+    throw std::runtime_error("AES-NI instruction set not available on this CPU");
+  }
   std::random_device rd;
   for (std::size_t i = 0; i < SeedSize(); ++i) {
     m_seed[i] = static_cast<uint8_t>(rd());
@@ -67,6 +91,9 @@ shf::Prg::Prg() {
 }
 
 shf::Prg::Prg(const uint8_t* seed) {
+  if (!g_aes_ni_available) {
+    throw std::runtime_error("AES-NI instruction set not available on this CPU");
+  }
   if (seed == nullptr) {
     throw std::invalid_argument("seed cannot be null");
   }

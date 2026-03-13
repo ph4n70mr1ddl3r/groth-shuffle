@@ -128,6 +128,9 @@ shf::Hash& shf::Hash::Update(const shf::Scalar& scalar) {
 }
 
 shf::Digest shf::Hash::Finalize() {
+  if (mFinalized) {
+    throw std::runtime_error("hash already finalized - create a new Hash object for each hash computation");
+  }
   if (mByteIndex >= 8) {
     throw std::runtime_error("hash state corrupted: byte index out of range");
   }
