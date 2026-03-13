@@ -55,8 +55,9 @@ class Scalar {
   /**
    * @brief Writes the scalar to a byte buffer.
    * @param dest Destination buffer, must not be null and have at least ByteSize() bytes.
+   * @throws std::invalid_argument if dest is null
    */
-  void Write(uint8_t* dest) const noexcept;
+  void Write(uint8_t* dest) const;
 
 #ifdef SHF_DEBUG
   void Print() const { bn_print(m_internal); }
@@ -102,8 +103,9 @@ class Point {
   /**
    * @brief Writes the point to a byte buffer.
    * @param dest Destination buffer, must not be null and have at least ByteSize() bytes.
+   * @throws std::invalid_argument if dest is null
    */
-  void Write(uint8_t* dest) const noexcept;
+  void Write(uint8_t* dest) const;
 
 #ifdef SHF_DEBUG
   void Print() const { ec_print(m_internal); }

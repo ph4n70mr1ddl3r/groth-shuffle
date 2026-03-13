@@ -1,6 +1,5 @@
 #include "curve.h"
 
-#include <cassert>
 #include <cstring>
 #include <stdexcept>
 #include <mutex>
@@ -132,8 +131,10 @@ bool shf::Point::operator==(const shf::Point& other) const noexcept {
   return ec_cmp(m_internal, other.m_internal) == RLC_EQ;
 }
 
-void shf::Point::Write(uint8_t* dest) const noexcept {
-  assert(dest != nullptr && "dest cannot be null");
+void shf::Point::Write(uint8_t* dest) const {
+  if (dest == nullptr) {
+    throw std::invalid_argument("dest cannot be null");
+  }
   if (IsInfinity())
     dest[0] = 1;
   else {
@@ -229,8 +230,10 @@ bool shf::Scalar::operator==(const shf::Scalar& other) const noexcept {
   return bn_cmp(m_internal, other.m_internal) == RLC_EQ;
 }
 
-void shf::Scalar::Write(uint8_t* dest) const noexcept {
-  assert(dest != nullptr && "dest cannot be null");
+void shf::Scalar::Write(uint8_t* dest) const {
+  if (dest == nullptr) {
+    throw std::invalid_argument("dest cannot be null");
+  }
   bn_write_bin(dest, ByteSize(), m_internal);
 }
 
