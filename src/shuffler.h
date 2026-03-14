@@ -81,7 +81,7 @@ class Shuffler {
    * @param hash a hash function object
    * @return true if the shuffle was correct and false otherwise.
    */
-  bool VerifyShuffle(const std::vector<Ctxt>& ctxts, const ShuffleP& proof,
+  [[nodiscard]] bool VerifyShuffle(const std::vector<Ctxt>& ctxts, const ShuffleP& proof,
                      Hash& hash);
 
  private:
