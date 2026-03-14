@@ -233,10 +233,6 @@ static inline std::vector<shf::Scalar> MulAndSum(
 }
 
 shf::MultiExpP shf::CreateProof(const shf::CommitKey& ck, const shf::PublicKey& pk,
-                                shf::Hash& hash, const shf::MultiExpS& statement,
-                                const std::vector<shf::Scalar>& w0,
-                                const shf::Scalar& w1, const shf::Scalar& w2) {
-shf::MultiExpP shf::CreateProof(const shf::CommitKey& ck,                                 const shf::PublicKey& pk,
                                  shf::Hash& hash, const shf::MultiExpS& statement,
                                  const std::vector<shf::Scalar>& w0,
                                  const shf::Scalar& w1, const shf::Scalar& w2) {
@@ -247,39 +243,21 @@ shf::MultiExpP shf::CreateProof(const shf::CommitKey& ck,                       
   a0.reserve(n);
   for (std::size_t i = 0; i < n; ++i)
     a0.emplace_back(Scalar::CreateRandom());
-  }
-            const CommitmentAndRandomness Cr0 = Commit(ck, a0);
-            const Scalar b = Scalar::CreateRandom();
-            const CommitmentAndRandomness Crb = CommitOne(ck, b);
 
-            const Scalar t = Scalar::CreateRandom();
-            const Point bG = b * Point::Generator();
-            const CommitmentAndRandomness Crb = CommitOne(ck, b);
+  const CommitmentAndRandomness Cr0 = Commit(ck, a0);
+  const Scalar b = Scalar::CreateRandom();
+  const CommitmentAndRandomness Crb = CommitOne(ck, b);
 
-            const Ctxt E0 = shf::Add(shf::Encrypt(pk, bG, t), shf::Dot(a0, Es));
-            const Scalar c = MultiExpChallenge(hash, statement, Cr0.C, Crb.C, E0)
-            const std::vector<Scalar> aa = MulAndSum(a0, w0, c);
-            const Scalar rr = Cr0.r + w1 * c;
-            const Scalar tt = t + w2 * c;
+  const Scalar t = Scalar::CreateRandom();
+  const Point bG = b * Point::Generator();
 
-            return {Cr0.C, Crb.C, E0, aa, rr, b, Crb.r, tt};
-        }
+  const Ctxt E0 = shf::Add(shf::Encrypt(pk, bG, t), shf::Dot(a0, Es));
+  const Scalar c = MultiExpChallenge(hash, statement, Cr0.C, Crb.C, E0);
+  const std::vector<Scalar> aa = MulAndSum(a0, w0, c);
+  const Scalar rr = Cr0.r + w1 * c;
+  const Scalar tt = t + w2 * c;
 
-            const CommitmentAndRandomness Cr0 = Commit(ck, a0);
-            const Scalar b = Scalar::CreateRandom();
-            const CommitmentAndRandomness Crb = CommitOne(ck, b);
-
-            const Scalar t = Scalar::CreateRandom();
-            const Point bG = b * Point::Generator();
-            const CommitmentAndRandomness Crb = CommitOne(ck, b);
-
-            const Ctxt E0 = shf::Add(shf::Encrypt(pk, bG, t), shf::Dot(a0, Es));
-            const Scalar c = MultiExpChallenge(hash, statement, Cr0.C, Crb.C, E0)
-            const std::vector<Scalar> aa = MulAndSum(a0, w0, c);
-            const Scalar rr = Cr0.r + w1 * c;
-            const Scalar tt = t + w2 * c
-
-            return {Cr0.C, Crb.C, E0, aa, rr, b, Crb.r, tt};
+  return {Cr0.C, Crb.C, E0, aa, rr, b, Crb.r, tt};
 }
 
 static inline bool CtxtEqual(const shf::Ctxt& E0, const shf::Ctxt& E1) {
