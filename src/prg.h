@@ -2,10 +2,15 @@
 #define SHF_PRG_H
 
 #include <type_traits>
-#include <wmmintrin.h>
-
 #include <cstdint>
 #include <vector>
+
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+#include <wmmintrin.h>
+#define SHF_HAS_AES_NI 1
+#else
+#error "AES-NI PRG requires x86/x86_64 platform with AES-NI support"
+#endif
 
 namespace shf {
 
