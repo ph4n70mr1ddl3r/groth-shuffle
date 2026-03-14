@@ -62,6 +62,7 @@ shf::Point shf::Point::Read(const uint8_t* bytes) {
     if (std::memcmp(bytes + 1, zero, Point::ByteSize() - 1) != 0) {
       throw std::invalid_argument("non-zero bytes in infinity encoding");
     }
+    ec_set_infty(p.m_internal);
   } else {
     throw std::invalid_argument("invalid point encoding prefix");
   }

@@ -1,17 +1,18 @@
-cmake_minimum_required( VERSION 3.10 )
+cmake_minimum_required(VERSION 3.10)
 
-project( shuffle
+project(shuffle
   VERSION 0.1
-  DESCRIPTION "server-based poker simulation with cryptographic shuffle" )
+  DESCRIPTION "server-based poker simulation with cryptographic shuffle"
+)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS
-  "${CMAKE_CXX_FLAGS} -march=native -Wall -Wextra -pedantic -Werror -Wshadow -Wundef -Wcast-align -Wunused")
-
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -Wextra -pedantic -Werror -Wshadow -Wundef -Wcast-align -Wunused")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG -fstack-protector-strong -D_FORTIFY_SOURCE=2")
 
-set(RELIC_LIB "${CMAKE_SOURCE_DIR}/thirdparty/lib/librelic_s.a")
+set(RELIC_LIB "${CMAKE_SOURCE_DIR}/thirdparty/lib")
+set(Gmp gmp)
+set(pthread pthread)
 
 set(SOURCE_FILES
     src/cipher.cc
@@ -20,13 +21,18 @@ set(SOURCE_FILES
     src/hash.cc
     src/prg.cc
     src/shuffler.cc
-    src/zkp.cc)
-
-include_directories(src)
-include_directories(thirdparty)
+    src/zkp.cc
+)
 
 add_executable(bg12_poker_server bg12_poker_server.cc ${SOURCE_FILES})
-target_link_libraries(bg12_poker_server ${RELIC_LIB} gmp pthread)
+target_include_directories(bg12_poker_server PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_BINARY_DIR}/thirdparty)
+target_link_libraries(bg12_poker_server PRIVATE
+    ${RELIC_LIB}
+    ${Gmp}
+    ${pthread})
+target_compile_options(bg12_poker_server PRIVATE "$<$<CONFIG:BUILD_TESTS:${CMAKE_CXX_FLAGS}>")
 
 option(BUILD_TESTS "Build test suite" OFF)
 
@@ -35,7 +41,7 @@ if(BUILD_TESTS)
   FetchContent_Declare(
     catch2
     GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG v3.4.0
+    GIT_TAG        v3.4.0
   )
   FetchContent_MakeAvailable(catch2)
 
@@ -46,6 +52,13 @@ if(BUILD_TESTS)
     test/test_hash.cc
     test/test_main.cc
     ${SOURCE_FILES})
-  target_link_libraries(tests PRIVATE Catch2::Catch2WithMain ${RELIC_LIB} gmp pthread)
-  target_include_directories(tests PRIVATE test)
+  target_include_directories(tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_BINARY_DIR}/thirdparty)
+  target_link_libraries(tests PRIVATE
+    ${RELIC_LIB}
+    ${Gmp}
+    ${pthread}
+    Catch2::Catch2WithMain
+  target_compile_options(tests PRIVATE "$<$<CONFIG:BUILD_TESTS:${CMAKE_CXX_FLAGS}>")
 endif()

@@ -14,7 +14,7 @@ struct CommitKey {
   [[nodiscard]] std::size_t Size() const noexcept { return G.size(); }
 };
 
-[[nodiscard]] CommitKey CreateCommitKey(const std::size_t size);
+[[nodiscard]] CommitKey CreateCommitKey(std::size_t size);
 
 struct CommitmentAndRandomness {
   Point C;
